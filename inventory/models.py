@@ -74,7 +74,7 @@ class Product(models.Model):
     ]
 
     # Basic Information
-    name = models.CharField(max_length=255, help_text="Product name (e.g., Samsung S24)")
+    name = models.CharField(max_length=255, blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     product_code = models.CharField(max_length=20, unique=True, blank=True, db_index=True)
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -90,7 +90,8 @@ class Product(models.Model):
     
     # Quantity
     quantity = models.PositiveIntegerField(
-        default=1,
+        null=True,
+        blank=True,
         help_text="1 for single items, multiple for bulk items"
     )
     
@@ -191,6 +192,8 @@ class Product(models.Model):
     def clean(self):
         """Validation before saving"""
         # Validate pricing
+        if not self.buying_price or not self.selling_price:
+            return
         if self.buying_price > self.selling_price:
             raise ValidationError("Buying price cannot exceed selling price")
         

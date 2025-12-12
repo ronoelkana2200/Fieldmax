@@ -1,8 +1,9 @@
-# sales/admin.py - FIXED VERSION
+# sales/admin.py - FIXED DELETE PERMISSIONS
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.urls import reverse
+from django.db import transaction
 from decimal import Decimal
 
 from .models import Sale, SaleItem, SaleReversal, FiscalReceipt
@@ -14,12 +15,9 @@ from .forms import SaleAdminForm, SaleItemInlineForm
 # ============================================
 
 class SaleItemInline(admin.TabularInline):
-    """
-    Display sale items inline within Sale admin
-    """
     model = SaleItem
     form = SaleItemInlineForm
-    extra = 0  # No empty forms by default
+    extra = 0
     
     fields = [
         'product',
@@ -39,29 +37,22 @@ class SaleItemInline(admin.TabularInline):
     ]
     
     def has_add_permission(self, request, obj=None):
-        # Prevent adding items to already processed sales
         if obj and obj.etr_status == 'processed':
             return False
         return True
     
     def has_delete_permission(self, request, obj=None):
-        # Prevent deleting items from processed sales
         if obj and obj.etr_status == 'processed':
             return False
-        return True
+        return super().has_delete_permission(request, obj)
 
 
 # ============================================
-# MAIN SALE ADMIN
+# MAIN SALE ADMIN - FIXED DELETE PERMISSIONS
 # ============================================
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Sale model
-    ✅ FIXED: Shows transaction-level view with items inline
-    """
-    
     form = SaleAdminForm
     inlines = [SaleItemInline]
     
@@ -155,6 +146,89 @@ class SaleAdmin(admin.ModelAdmin):
         }),
     )
     
+    # Register admin actions
+    actions = ['generate_etr_receipts_action', 'safe_delete_sales_action']
+    
+    # ============================================
+    # FIXED: DELETE PERMISSIONS FOR SUPERUSERS
+    # ============================================
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Allow superusers to delete any sale
+        Prevent staff from deleting processed sales
+        """
+        if request.user.is_superuser:
+            return True
+        
+        # For staff users, prevent deletion of processed sales
+        if obj and obj.etr_status == 'processed':
+            return False
+        
+        return super().has_delete_permission(request, obj)
+    
+    def delete_model(self, request, obj):
+        """
+        Override delete_model to handle cascading deletes properly
+        This is called when deleting a single object
+        """
+        if request.user.is_superuser:
+            with transaction.atomic():
+                # Delete related objects first
+                obj.items.all().delete()
+                
+                if hasattr(obj, 'fiscal_receipt'):
+                    obj.fiscal_receipt.delete()
+                
+                if hasattr(obj, 'reversal'):
+                    obj.reversal.delete()
+                
+                # Now delete the sale
+                obj.delete()
+                
+            self.message_user(
+                request,
+                f"Sale {obj.sale_id} deleted successfully.",
+                messages.SUCCESS
+            )
+        else:
+            super().delete_model(request, obj)
+    
+    def delete_queryset(self, request, queryset):
+        """
+        Override delete_queryset to handle bulk deletion
+        This is called when using the admin action
+        """
+        if request.user.is_superuser:
+            deleted_count = 0
+            
+            with transaction.atomic():
+                for sale in queryset:
+                    # Delete related objects
+                    sale.items.all().delete()
+                    
+                    if hasattr(sale, 'fiscal_receipt'):
+                        sale.fiscal_receipt.delete()
+                    
+                    if hasattr(sale, 'reversal'):
+                        sale.reversal.delete()
+                    
+                    # Delete the sale
+                    sale.delete()
+                    deleted_count += 1
+            
+            self.message_user(
+                request,
+                f"Successfully deleted {deleted_count} sale(s).",
+                messages.SUCCESS
+            )
+        else:
+            super().delete_queryset(request, queryset)
+    
+    # ============================================
+    # DISPLAY METHODS
+    # ============================================
+    
     def seller_name(self, obj):
         return obj.seller.get_full_name() if obj.seller else 'N/A'
     seller_name.short_description = 'Seller'
@@ -168,14 +242,12 @@ class SaleAdmin(admin.ModelAdmin):
         )
     item_count_display.short_description = 'Items'
     
-
     def total_amount_display(self, obj):
         amount = f"{float(obj.total_amount):,.2f}"
         return format_html(
             '<strong style="color: #10b981;">KSH {}</strong>',
             amount
         )
-
     total_amount_display.short_description = 'Total'
     total_amount_display.admin_order_field = 'total_amount'
     
@@ -223,24 +295,65 @@ class SaleAdmin(admin.ModelAdmin):
         return '—'
     receipt_link.short_description = 'Receipt'
     
-    def has_delete_permission(self, request, obj=None):
-        # Prevent deletion of processed sales
-        if obj and obj.etr_status == 'processed':
-            return False
-        return super().has_delete_permission(request, obj)
+    # ============================================
+    # ADMIN ACTIONS
+    # ============================================
+    
+    @admin.action(description='Generate ETR receipts for selected sales')
+    def generate_etr_receipts_action(self, request, queryset):
+        """Batch generate ETR receipts"""
+        count = 0
+        for sale in queryset.filter(etr_receipt_number__isnull=True):
+            sale.assign_etr_receipt_number()
+            count += 1
+        
+        self.message_user(
+            request,
+            f'Generated {count} ETR receipt(s)',
+            messages.SUCCESS
+        )
+    
+    @admin.action(description="Delete selected sales (Superuser only)")
+    def safe_delete_sales_action(self, request, queryset):
+        """Safe deletion with proper cascade handling"""
+        if not request.user.is_superuser:
+            self.message_user(
+                request,
+                "Only superusers can delete sales.",
+                messages.ERROR
+            )
+            return
+        
+        deleted_count = 0
+        
+        with transaction.atomic():
+            for sale in queryset:
+                # Delete related objects
+                sale.items.all().delete()
+                
+                if hasattr(sale, 'fiscal_receipt'):
+                    sale.fiscal_receipt.delete()
+                
+                if hasattr(sale, 'reversal'):
+                    sale.reversal.delete()
+                
+                # Delete the sale
+                sale.delete()
+                deleted_count += 1
+        
+        self.message_user(
+            request,
+            f"Successfully deleted {deleted_count} sale(s).",
+            messages.SUCCESS
+        )
 
 
 # ============================================
-# SALE ITEM ADMIN (Optional standalone view)
+# SALE ITEM ADMIN
 # ============================================
 
 @admin.register(SaleItem)
 class SaleItemAdmin(admin.ModelAdmin):
-    """
-    Standalone admin for viewing all sale items
-    Useful for inventory tracking and reports
-    """
-    
     list_display = [
         'sale_link',
         'product_name',
@@ -277,38 +390,26 @@ class SaleItemAdmin(admin.ModelAdmin):
     ]
     
     def has_add_permission(self, request):
-        # Items should only be added through Sale admin
         return False
     
     def has_delete_permission(self, request, obj=None):
-        # Prevent deletion of processed sale items
-        if obj and obj.sale.etr_status == 'processed':
-            return False
-        return True
+        return request.user.is_superuser
     
     def sale_link(self, obj):
         url = reverse('admin:sales_sale_change', args=[obj.sale.sale_id])
-        return format_html(
-            '<a href="{}">Sale #{}</a>',
-            url,
-            obj.sale.sale_id
-        )
+        return format_html('<a href="{}">Sale #{}</a>', url, obj.sale.sale_id)
     sale_link.short_description = 'Sale'
     
     def unit_price_display(self, obj):
         return f'KSH {obj.unit_price:,.2f}'
     unit_price_display.short_description = 'Unit Price'
-    unit_price_display.admin_order_field = 'unit_price'
     
     def total_price_display(self, obj):
-        amount = f"{float(obj.total_price):,.2f}"
         return format_html(
             '<strong style="color: #10b981;">KSH {}</strong>',
-            amount
+            f"{float(obj.total_price):,.2f}"
         )
-
     total_price_display.short_description = 'Total'
-    total_price_display.admin_order_field = 'total_price'
 
 
 # ============================================
@@ -317,10 +418,6 @@ class SaleItemAdmin(admin.ModelAdmin):
 
 @admin.register(SaleReversal)
 class SaleReversalAdmin(admin.ModelAdmin):
-    """
-    Admin for viewing sale reversals
-    """
-    
     list_display = [
         'sale_link',
         'reversed_at',
@@ -328,36 +425,19 @@ class SaleReversalAdmin(admin.ModelAdmin):
         'reason_preview',
     ]
     
-    list_filter = [
-        'reversed_at',
-        'reversed_by',
-    ]
-    
-    search_fields = [
-        'sale__sale_id',
-        'reason',
-    ]
-    
-    readonly_fields = [
-        'sale',
-        'reversed_at',
-        'reversed_by',
-        'reason',
-    ]
+    list_filter = ['reversed_at', 'reversed_by']
+    search_fields = ['sale__sale_id', 'reason']
+    readonly_fields = ['sale', 'reversed_at', 'reversed_by', 'reason']
     
     def has_add_permission(self, request):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        return False
+        return request.user.is_superuser
     
     def sale_link(self, obj):
         url = reverse('admin:sales_sale_change', args=[obj.sale.sale_id])
-        return format_html(
-            '<a href="{}">Sale #{}</a>',
-            url,
-            obj.sale.sale_id
-        )
+        return format_html('<a href="{}">Sale #{}</a>', url, obj.sale.sale_id)
     sale_link.short_description = 'Sale'
     
     def reason_preview(self, obj):
@@ -373,73 +453,18 @@ class SaleReversalAdmin(admin.ModelAdmin):
 
 @admin.register(FiscalReceipt)
 class FiscalReceiptAdmin(admin.ModelAdmin):
-    """
-    Admin for fiscal receipts
-    """
-    
-    list_display = [
-        'receipt_number',
-        'sale_link',
-        'issued_at',
-        'validity_status',
-    ]
-    
-    list_filter = [
-        'issued_at',
-    ]
-    
-    search_fields = [
-        'receipt_number',
-        'sale__sale_id',
-    ]
-    
-    readonly_fields = [
-        'sale',
-        'receipt_number',
-        'issued_at',
-        'qr_code',
-        'verification_url',
-    ]
+    list_display = ['receipt_number', 'sale_link', 'issued_at']
+    list_filter = ['issued_at']
+    search_fields = ['receipt_number', 'sale__sale_id']
+    readonly_fields = ['sale', 'receipt_number', 'issued_at', 'qr_code', 'verification_url']
     
     def has_add_permission(self, request):
         return False
     
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+    
     def sale_link(self, obj):
         url = reverse('admin:sales_sale_change', args=[obj.sale.sale_id])
-        return format_html(
-            '<a href="{}">Sale #{}</a>',
-            url,
-            obj.sale.sale_id
-        )
+        return format_html('<a href="{}">Sale #{}</a>', url, obj.sale.sale_id)
     sale_link.short_description = 'Sale'
-    
-    def validity_status(self, obj):
-        if obj.is_valid:
-            return format_html(
-                '<span style="color: #10b981; font-weight: bold;">✓ Valid</span>'
-            )
-        return format_html(
-            '<span style="color: #ef4444; font-weight: bold;">✗ Invalid (Reversed)</span>'
-        )
-    validity_status.short_description = 'Status'
-
-
-# ============================================
-# ADMIN ACTIONS
-# ============================================
-
-@admin.action(description='Generate ETR receipts for selected sales')
-def generate_etr_receipts(modeladmin, request, queryset):
-    """Batch generate ETR receipts"""
-    count = 0
-    for sale in queryset.filter(etr_receipt_number__isnull=True):
-        sale.assign_etr_receipt_number()
-        count += 1
-    
-    modeladmin.message_user(
-        request,
-        f'Generated {count} ETR receipt(s)'
-    )
-
-# Add action to SaleAdmin
-SaleAdmin.actions = [generate_etr_receipts]

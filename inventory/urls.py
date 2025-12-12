@@ -16,14 +16,14 @@ urlpatterns = [
     # ============================================
     path('api/', include(router.urls)),
     
-    # ============================================
+    # ====================================
     # CATEGORY URLS
-    # ============================================
+    # ====================================
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
-    path('categories/create/', views.CategoryCreateView.as_view(), name='category-create'),
-    path('categories/<int:pk>/', views.CategoryDetailView.as_view(), name='category-detail'),
-    path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category-update'),
-    path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category-delete'),
+    path('category/<int:pk>/', views.CategoryDetailView.as_view(), name='category-detail'),
+    path('category/create/', views.CategoryCreateView.as_view(), name='category-create'),
+    path('category/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category-edit'),
+    path('category/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category-delete'),
     
     # ============================================
     # PRODUCT URLS

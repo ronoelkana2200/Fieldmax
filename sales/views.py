@@ -398,10 +398,44 @@ class SaleReverseView(LoginRequiredMixin, View):
 
 
 
+# sales/views.py
+from django.http import JsonResponse
+from django.db.models import Sum
+from sales.models import Sale
+from inventory.models import Category
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
+def sales_report_api(request):
+    seller_id = request.GET.get('seller')
+    category_id = request.GET.get('category')
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
 
+    sales = Sale.objects.all()
 
+    if seller_id:
+        sales = sales.filter(seller_id=seller_id)
+    if category_id:
+        sales = sales.filter(product__category_id=category_id)
+    if start_date:
+        sales = sales.filter(date__gte=start_date)
+    if end_date:
+        sales = sales.filter(date__lte=end_date)
+
+    results = []
+    for s in sales:
+        results.append({
+            "date": s.date.strftime("%Y-%m-%d"),
+            "seller": s.seller.username,
+            "category": s.product.category.name,
+            "product": s.product.name,
+            "quantity": s.quantity,
+            "total": float(s.quantity * s.unit_price),
+        })
+
+    return JsonResponse({"results": results})
 
 
 # =========================================

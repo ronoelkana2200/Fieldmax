@@ -31,6 +31,7 @@ urlpatterns = [
     path('product/<int:product_id>/restock/', views.RestockView.as_view(), name='sale-restock'),
 
     # Receipts / ETR
+    path('receipt/<str:sale_id>/', views.sale_receipt_view, name='sale-receipt'),
     path('sale/<str:sale_id>/etr/', views.sale_etr_view, name='sale-etr'),
     path('sale/<str:sale_id>/download/', views.download_receipt_view, name='download-receipt'),
 
@@ -56,4 +57,6 @@ urlpatterns = [
     path('batch-receipt/<str:batch_id>/download/', 
          views.download_batch_receipt_view, 
          name='download-batch-receipt'),
+
+    path("api/reports/", views.sales_report_api, name="sales-report-api"),
 ]

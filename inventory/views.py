@@ -18,7 +18,7 @@ from django.core.exceptions import ValidationError
 from django.contrib import messages
 from .models import Category, Product, StockEntry
 from .serializers import CategorySerializer, ProductSerializer, StockEntrySerializer
-from .forms import CategoryForm, ProductForm, StockEntryForm
+from .forms import CategoryForm, ProductForm, StockEntryForm, ProductFormSet
 import logging
 
 
@@ -133,15 +133,16 @@ class CategoryDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
-# inventory/views.py
-from django.views.generic import CreateView
-from django.http import JsonResponse
-from django.urls import reverse_lazy
-from django.shortcuts import redirect, render
-from .models import Category
-from .forms import CategoryForm, ProductFormSet
+
+
+
+
 
 class CategoryCreateView(LoginRequiredMixin, CreateView):
+    """
+    Create a category with inline products
+    Handles both regular form submission and AJAX
+    """
     model = Category
     form_class = CategoryForm
     template_name = "inventory/category_form.html"
@@ -149,37 +150,195 @@ class CategoryCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['title'] = 'Add New Category'
+        context['button_text'] = 'Create Category'
+        
+        # Add formset to context
+        if self.request.POST:
+            context['products'] = ProductFormSet(self.request.POST, instance=self.object)
+        else:
+            context['products'] = ProductFormSet(instance=self.object)
+        
+        # Add choices for dropdowns
         context['item_type_choices'] = Category.ITEM_TYPE_CHOICES
         context['sku_type_choices'] = Category.SKU_TYPE_CHOICES
+        
         return context
 
-    def get_context_data(self, **kwargs):
-        data = super().get_context_data(**kwargs)
-        if self.request.POST:
-            data['products'] = ProductFormSet(self.request.POST)
-        else:
-            data['products'] = ProductFormSet()
-        return data
-
-    def form_valid(self, form):
-        context = self.get_context_data()
-        products = context['products']
-        if products.is_valid():
-            self.object = form.save()
-            products.instance = self.object
-            products.save()
+    def post(self, request, *args, **kwargs):
+        """Handle both AJAX and normal POST"""
+        self.object = None
+        
+        logger.info("=== CategoryCreateView POST ===")
+        logger.info(f"POST data keys: {list(request.POST.keys())}")
+        
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        logger.info(f"Is AJAX: {is_ajax}")
+        
+        try:
+            form = self.get_form()
             
-            # AJAX response
-            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Get the formset
+            products_formset = ProductFormSet(request.POST)
+            
+            logger.info(f"Form valid: {form.is_valid()}")
+            logger.info(f"Formset valid: {products_formset.is_valid()}")
+            
+            if form.errors:
+                logger.error(f"Form errors: {form.errors}")
+            if products_formset.errors:
+                logger.error(f"Formset errors: {products_formset.errors}")
+            
+            if form.is_valid() and products_formset.is_valid():
+                return self.form_valid(form, products_formset)
+            else:
+                return self.form_invalid(form, products_formset)
+                
+        except Exception as e:
+            logger.error("=" * 80)
+            logger.error(f"ERROR in POST: {str(e)}")
+            logger.error(traceback.format_exc())
+            logger.error("=" * 80)
+            
+            if is_ajax:
                 return JsonResponse({
-                    'status': 'success',
-                    'message': f'Category "{self.object.name}" created successfully',
-                    'category_id': self.object.pk
-                })
+                    'status': 'error',
+                    'message': f'Server error: {str(e)}'
+                }, status=500)
+            raise
+
+    def form_valid(self, form, products_formset):
+        """Process valid form and formset"""
+        logger.info("=== form_valid START ===")
+        
+        is_ajax = self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        try:
+            with transaction.atomic():
+                # Save the category
+                self.object = form.save()
+                logger.info(f"✅ Category saved: {self.object.name} ({self.object.category_code})")
+                
+                # Assign category to formset and save products
+                products_formset.instance = self.object
+                products = products_formset.save(commit=False)
+                
+                product_count = 0
+                for form_obj, product in zip(products_formset.forms, products):
+                    # ✅ Skip empty forms (no product entered)
+                    if not form_obj.cleaned_data:
+                       continue
+
+                    # ✅ Skip rows where name & quantity are empty
+                    if not product.name and not product.quantity:
+                       continue
+
+                    # Set default values
+                    product.owner = self.request.user
+                    
+                    # Set quantity based on category type
+                    if self.object.is_single_item:
+                        product.quantity = 0
+                    elif product.quantity is None:
+                        product.quantity = 0
+                    
+                    # Set default prices if not provided
+                    if not product.buying_price:
+                        product.buying_price = 0
+                    if not product.selling_price:
+                        product.selling_price = 0
+                    
+                    product.save()
+                    product_count += 1
+                    logger.info(f"✅ Product saved: {product.name} ({product.product_code})")
+                
+                # Handle deletions
+                for obj in products_formset.deleted_objects:
+                    obj.delete()
+                
+                logger.info(f"✅ Total products created: {product_count}")
+                
+                # Return response
+                if is_ajax:
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'Category "{self.object.name}" created with {product_count} product(s)',
+                        'category_id': self.object.pk,
+                        'category_code': self.object.category_code,
+                        'product_count': product_count
+                    })
+                else:
+                    return redirect(self.success_url)
+                    
+        except Exception as e:
+            logger.error("=" * 80)
+            logger.error(f"ERROR in form_valid: {str(e)}")
+            logger.error(traceback.format_exc())
+            logger.error("=" * 80)
             
-            return super().form_valid(form)
-        else:
-            return self.form_invalid(form)
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Error saving category: {str(e)}'
+                }, status=400)
+            
+            form.add_error(None, str(e))
+            return self.form_invalid(form, products_formset)
+
+    def form_invalid(self, form, products_formset):
+        """Handle invalid form/formset"""
+        logger.error("=== form_invalid ===")
+        logger.error(f"Form errors: {form.errors}")
+        logger.error(f"Formset errors: {products_formset.errors}")
+        
+        is_ajax = self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        if is_ajax:
+            # Collect all errors
+            errors = {}
+            
+            if form.errors:
+                errors['category'] = dict(form.errors)
+            
+            if products_formset.errors:
+                errors['products'] = []
+                for i, form_errors in enumerate(products_formset.errors):
+                    if form_errors:
+                        errors['products'].append({
+                            'index': i,
+                            'errors': dict(form_errors)
+                        })
+            
+            # Get first error message
+            error_message = "Validation error"
+            if form.errors:
+                first_field = list(form.errors.keys())[0]
+                first_error = form.errors[first_field][0]
+                error_message = f"{first_field}: {first_error}" if first_field != '__all__' else first_error
+            elif products_formset.errors:
+                for form_errors in products_formset.errors:
+                    if form_errors:
+                        first_field = list(form_errors.keys())[0]
+                        first_error = form_errors[first_field][0]
+                        error_message = f"Product {first_field}: {first_error}"
+                        break
+            
+            return JsonResponse({
+                'status': 'error',
+                'message': error_message,
+                'errors': errors
+            }, status=400)
+        
+        # Normal form submission - re-render with errors
+        context = self.get_context_data()
+        context['form'] = form
+        context['products'] = products_formset
+        return self.render_to_response(context)
+
+
+
+
+
 
 
 
@@ -1176,3 +1335,82 @@ def dashboard_stats(request):
         },
         'inventory_value': float(total_value),
     })
+
+
+
+    from django.shortcuts import render
+from .models import Product, Category
+
+def product_list(request):
+    # Get filters from the request (GET params)
+    status_filter = request.GET.get('status', 'all')
+    category_filter = request.GET.get('category', 'all')
+    type_filter = request.GET.get('type', 'all')
+
+    products = Product.objects.select_related('category', 'owner').all()
+
+    # ---------- FILTERING ----------
+    # Filter by category
+    if category_filter != 'all':
+        products = products.filter(category_id=category_filter)
+
+    # Filter by type (single / bulk)
+    if type_filter == 'single':
+        products = products.filter(category__is_single_item=True)
+    elif type_filter == 'bulk':
+        products = products.filter(category__is_single_item=False)
+
+    # Filter by stock status
+    if status_filter != 'all':
+        if status_filter == 'instock':
+            products = products.filter(quantity__gt=0)
+        elif status_filter == 'outofstock':
+            products = products.filter(quantity=0)
+        elif status_filter == 'lowstock':
+            products = products.filter(quantity__lte=5, quantity__gt=0)
+
+    # ---------- CALCULATIONS ----------
+    products_with_margin_and_status = []
+    for p in products:
+        # margin calculation
+        if p.buying_price and p.buying_price > 0:
+            margin_pct = ((p.selling_price - p.buying_price) / p.buying_price) * 100
+        else:
+            margin_pct = 0
+
+        # status logic
+        if p.category.is_single_item:
+            status = 'outofstock' if p.status == 'sold' else 'instock'
+        else:
+            if p.quantity == 0:
+                status = 'outofstock'
+            elif p.quantity <= 5:
+                status = 'lowstock'
+            else:
+                status = 'instock'
+
+        products_with_margin_and_status.append({
+            'product': p,
+            'margin_pct': margin_pct,
+            'status': status
+        })
+
+    # ---------- COUNTS ----------
+    total_products = Product.objects.count()
+
+    in_stock_count = Product.objects.filter(quantity__gt=0).count()
+    low_stock_count = Product.objects.filter(quantity__lte=5, quantity__gt=0).count()
+    out_of_stock_count = Product.objects.filter(quantity=0).count()
+
+    categories = Category.objects.all()
+
+    context = {
+        'products_with_margin_and_status': products_with_margin_and_status,
+        'total_products': total_products,
+        'in_stock_count': in_stock_count,
+        'low_stock_count': low_stock_count,
+        'out_of_stock_count': out_of_stock_count,
+        'categories': categories
+    }
+
+    return render(request, 'website/products.html', context)

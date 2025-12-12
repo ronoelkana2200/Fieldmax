@@ -8,6 +8,7 @@ class Profile(models.Model):
         ("admin", "Admin"),
         ("manager", "Manager"),
         ("agent", "Agent"),
+        ("cashier", "Cashier"),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)

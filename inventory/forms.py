@@ -74,7 +74,8 @@ ProductFormSet = inlineformset_factory(
     Product,
     form=ProductForm,
     extra=1,  # Number of blank product rows
-    can_delete=True
+    can_delete=True,
+    validate_min=False
 )
 
 

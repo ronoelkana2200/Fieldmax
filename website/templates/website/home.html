@@ -1,10 +1,738 @@
-{% extends "website/base.html" %}
+{% extends 'website/base.html' %}
+{% load static %}
 
 {% block title %}Home - Fieldmax{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <h1>Welcome to Fieldmax Shop</h1>
-  <p>This is your home page.</p>
-</div>
+
+<style>
+/* ===== HERO SECTION ===== */
+.hero-section {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    min-height: 85vh;
+    display: grid;
+    grid-template-columns: 1fr minmax(auto, 650px) 1fr;
+    align-items: center;
+    gap: 40px;
+    padding: 80px 32px;
+    background: linear-gradient(135deg, #d1dcd6 100%, #d1dcd6 100%);
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255,255,255,0.08) 0%, transparent 50%);
+    animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.hero-stack {
+    position: relative;
+    height: 480px;
+    perspective: 1200px;
+    z-index: 1;
+}
+
+.stack-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.stack-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 24px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+    opacity: 0;
+    animation: imageRotate 15s infinite;
+}
+
+.stack-img:nth-child(1) { animation-delay: 0s; }
+.stack-img:nth-child(2) { animation-delay: 5s; }
+.stack-img:nth-child(3) { animation-delay: 10s; }
+
+@keyframes imageRotate {
+    0% { opacity: 0; transform: scale(0.95); }
+    6% { opacity: 1; transform: scale(1); }
+    27% { opacity: 1; transform: scale(1); }
+    33% { opacity: 0; transform: scale(1.05); }
+    100% { opacity: 0; }
+}
+
+.hero-center {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    animation: fadeInUp 1s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.hero-title {
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0 0 20px;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.gradient-text {
+    background: linear-gradient(90deg, #fff 0%, #f0f0ff 100%);
+
+    /* Standard property for compatibility */
+    background-clip: text;
+
+    /* WebKit support */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    display: inline-block;
+    padding: 20px 40px;
+    border: 3px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
+
+    /* Backdrop blur (with fallback) */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    background-color: rgba(255,255,255,0.1);
+    margin-top: 16px;
+
+    /* Standard fallback to ensure text is hidden properly */
+    color: transparent;
+}
+
+
+.hero-subtitle {
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 24px auto;
+    max-width: 520px;
+    opacity: 0.95;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin: 32px 0;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn.primary {
+    background: #fff;
+    color: #667eea;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.btn.primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+
+.btn.white {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.4);
+    backdrop-filter: blur(10px);
+}
+
+.btn.white:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.hero-stats {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    margin-top: 48px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 900;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.stat-label {
+    font-size: 12px;
+    opacity: 0.8;
+    letter-spacing: 1px;
+}
+
+/* ===== PROMO SECTION ===== */
+.promo-section {
+    position: relative;
+    padding: 80px 32px;
+    background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.section-head {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.section-head h2 {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    /* Standard property (for compatibility) */
+    background-clip: text;
+
+    /* WebKit fallback */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    /* Standard fallback */
+    color: transparent;
+}
+
+.section-head p {
+    font-size: 18px;
+    color: #6b6b6b;
+}
+
+.promo-triple {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.promo-card {
+    position: relative;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 40px;
+    color: #fff;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.promo-card:hover {
+    transform: translateY(-8px);
+}
+
+.promo-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 70%);
+}
+
+.promo-inner {
+    position: relative;
+    z-index: 2;
+}
+
+.eyebrow {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.promo-inner h3 {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.percent {
+    font-size: 56px;
+    font-weight: 900;
+    display: block;
+}
+
+.promo-inner p {
+    font-size: 15px;
+    opacity: 0.9;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+/* ===== SERVICES SECTION ===== */
+.services-section {
+    padding: 80px 32px;
+    background: #fff;
+}
+
+.service-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 32px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    border: 2px solid #e9ecef;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.service-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    border-color: #667eea;
+}
+
+.service-icon {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.service-item .text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.service-item strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+}
+
+.service-item span {
+    font-size: 14px;
+    color: #6b6b6b;
+}
+
+/* ===== BEST SELLERS ===== */
+.bestsellers-section {
+    padding: 80px 32px;
+    background: linear-gradient(180deg, #fff 0%, #f8f9fa 100%);
+}
+
+.carousel-container {
+    position: relative;
+    margin-top: 32px;
+}
+
+.car-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(280px, 320px);
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 24px 0;
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #e9ecef;
+}
+
+.car-track::-webkit-scrollbar {
+    height: 8px;
+}
+
+.car-track::-webkit-scrollbar-track {
+    background: #e9ecef;
+    border-radius: 10px;
+}
+
+.car-track::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.car-card {
+    scroll-snap-align: start;
+    background: #fff;
+    border: 2px solid #e9ecef;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: all 0.3s ease;
+}
+
+.car-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+    border-color: #667eea;
+}
+
+.card-image {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    height: 220px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-content h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.price {
+    font-size: 24px;
+    font-weight: 900;
+    color: #667eea;
+}
+
+/* ===== CATEGORIES SECTION ===== */
+.categories-section {
+    padding: 80px 32px;
+    background: #fff;
+}
+
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.category-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #111;
+    transition: transform 0.3s ease;
+}
+
+.category-card:hover {
+    transform: scale(1.05);
+}
+
+.category-image {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #e9ecef;
+    margin-bottom: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.category-card:hover .category-image {
+    border-color: #667eea;
+}
+
+.category-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.category-content {
+    text-align: center;
+}
+
+.category-content strong {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.category-arrow {
+    margin-left: 4px;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.category-card:hover .category-arrow {
+    transform: translateX(4px);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 60px 24px;
+    }
+    
+    .hero-stack {
+        display: none;
+    }
+    
+    .hero-center {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 36px;
+    }
+    
+    .hero-actions {
+        flex-direction: column;
+    }
+    
+    .hero-stats {
+        gap: 24px;
+    }
+    
+    .promo-triple {
+        grid-template-columns: 1fr;
+    }
+    
+    .service-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .car-track {
+        grid-auto-columns: minmax(240px, 280px);
+    }
+    
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.text-center {
+    text-align: center;
+}
+</style>
+
+<!-- HERO SECTION -->
+<section class="hero-section">
+    <div class="hero-stack left-stack">
+        <div class="stack-container">
+            <img class="stack-img" src="{% static 'images/P1.jpg' %}" alt="Premium Smartphones">
+            <img class="stack-img" src="{% static 'images/P2.jpg' %}" alt="Latest Accessories">
+            <img class="stack-img" src="{% static 'images/P3.jpg' %}" alt="Quality Products">
+        </div>
+    </div>
+
+    <div class="hero-center">
+        <span class="hero-badge">🚀 BEST PRICES GUARANTEED</span>
+        <h1 class="hero-title">
+            PREMIUM TECH<br>
+            <span class="gradient-text">AMAZING PRICES</span>
+        </h1>
+        <p class="hero-subtitle">
+            🎯 Discover the latest smartphones, accessories, and gadgets at unbeatable prices with exclusive deals
+        </p>
+        <div class="hero-actions">
+            <a href="{% url 'home' %}" class="btn primary">🛍️ SHOP NOW</a>
+            <a href="#featured" class="btn white">🔥 HOT DEALS</a>
+        </div>
+        
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-number">{{ total_products|default:"500+" }}</span>
+                <span class="stat-label">PRODUCTS</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">98%</span>
+                <span class="stat-label">HAPPY CLIENTS</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">24/7</span>
+                <span class="stat-label">SUPPORT</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-stack right-stack">
+        <div class="stack-container">
+            <img class="stack-img" src="{% static 'images/P4.jpg' %}" alt="Mobile Solutions">
+            <img class="stack-img" src="{% static 'images/P5.jpg' %}" alt="Audio Devices">
+            <img class="stack-img" src="{% static 'images/P6.jpg' %}" alt="Tech Gadgets">
+        </div>
+    </div>
+</section>
+
+<!-- PROMO SECTION -->
+<section class="promo-section" id="featured">
+    <div class="container">
+        <div class="section-head">
+            <h2>🔥 HOT DEALS</h2>
+            <p>Limited time offers on premium products - Don't miss out!</p>
+        </div>
+
+        <div class="promo-triple">
+            {% for product in featured_products %}
+            <article class="promo-card">
+                <div class="promo-inner">
+                    <span class="eyebrow">🌟 FEATURED PRODUCT</span>
+                    <h3>{{ product.product_name }}<br>
+                        <span class="percent">{{ product.discount|default:"20%" }}</span> OFF
+                    </h3>
+                    <p>{{ product.description|truncatechars:120 }}</p>
+                    <a class="btn white" href="{% url 'website' %}?id={{ product.id }}">SHOP NOW →</a>
+                </div>
+            </article>
+            {% empty %}
+            <p class="text-center">No featured products available at the moment.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- SERVICES SECTION -->
+<section class="services-section">
+    <div class="container">
+        <div class="section-head">
+            <h2>⭐ WHY CHOOSE FIELDMAX?</h2>
+            <p>We provide the ultimate shopping experience with premium services</p>
+        </div>
+
+        <div class="service-bar">
+            <div class="service-item">
+                <div class="service-icon">🚚</div>
+                <div class="text">
+                    <strong>FAST DELIVERY</strong>
+                    <span>Quick nationwide shipping</span>
+                </div>
+            </div>
+            <div class="service-item">
+                <div class="service-icon">📞</div>
+                <div class="text">
+                    <strong>24/7 SUPPORT</strong>
+                    <span>Always here to help you</span>
+                </div>
+            </div>
+            <div class="service-item">
+                <div class="service-icon">💰</div>
+                <div class="text">
+                    <strong>BEST PRICES</strong>
+                    <span>Guaranteed value</span>
+                </div>
+            </div>
+            <div class="service-item">
+                <div class="service-icon">↩️</div>
+                <div class="text">
+                    <strong>EASY RETURNS</strong>
+                    <span>30-day return policy</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BEST SELLERS -->
+<section class="bestsellers-section">
+    <div class="container">
+        <div class="section-head">
+            <h2>🔥 BEST SELLERS</h2>
+            <p>Most popular products our customers love</p>
+        </div>
+
+        <div class="carousel-container">
+            <div class="car-track">
+                {% for p in best_sellers %}
+                <article class="car-card">
+                    <div class="card-image">
+                        <img src="{% static 'placeholder.jpg' %}" alt="{{ p.product_name }}">
+                    </div>
+                    <div class="card-content">
+                        <h4>{{ p.product_name }}</h4>
+                        <div class="price">KSh {{ p.selling_price|floatformat:0 }}</div>
+                        <button class="btn primary" style="width: 100%; margin-top: 15px;">🛒 ADD TO CART</button>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="text-center">No best sellers yet. Check back soon!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CATEGORIES SECTION -->
+<section class="categories-section">
+    <div class="container">
+        <div class="section-head">
+            <h2>🛍️ SHOP BY CATEGORY</h2>
+            <p>Find exactly what you're looking for - Browse our collections!</p>
+        </div>
+
+        <div class="categories-grid">
+            {% for c in categories %}
+            <a class="category-card" href="{% url 'website' %}?category={{ c.code }}">
+                <div class="category-image">
+                    <img src="{% static 'placeholder.jpg' %}" alt="{{ c.name }}">
+                </div>
+                <div class="category-content">
+                    <strong>{{ c.name }}</strong>
+                    <span class="category-arrow">→</span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="text-center">
+                <p>No categories available yet. Coming soon! 🚀</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
 {% endblock %}

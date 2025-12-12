@@ -8,7 +8,7 @@ from sales.models import Sale
 from users.models import Profile 
 from django.utils import timezone
 from django.urls import reverse
-from django.db.models import Sum, Q, F, DecimalField
+from django.db.models import Sum, Q, F, DecimalField, Count
 from inventory.models import Product, Category, StockEntry
 from decimal import Decimal
 import logging
@@ -54,20 +54,44 @@ def admin_dashboard(request):
     - Single items: Uses product.status field directly
     - Bulk items: Calculates status from quantity
     - Handles recent products and recent sales
+    - Displays comprehensive statistics for cards with dropdowns
     """
     context = {}
 
     # ============================================
-    # SUMMARY CARDS
+    # CURRENT TIME CALCULATIONS
     # ============================================
-    context["total_users"] = User.objects.count()
-    context["total_categories"] = Category.objects.count()
-    context["total_stock_entries"] = StockEntry.objects.count()
+    now = timezone.now()
+    
+    # Calculate start of today
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timezone.timedelta(days=1)
+    
+    # Calculate start of week (Monday)
+    start_of_week = now - timezone.timedelta(days=now.weekday())
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Calculate start of month
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # Calculate start of year
+    start_of_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # Total products (sum of quantities)
-    context["total_products"] = Product.objects.filter(is_active=True).aggregate(
-        total=Sum('quantity', output_field=DecimalField())
-    )['total'] or 0
+    # ============================================
+    # CARD A: 📦 INVENTORY
+    # ============================================
+    # Total products count (sum of quantities for bulk, count for single items)
+    all_products = Product.objects.filter(is_active=True)
+    
+    total_products = 0
+    for product in all_products:
+        if product.category.is_single_item:
+            if product.status == 'available':
+                total_products += 1
+        else:
+            total_products += product.quantity or 0
+    
+    context["total_products"] = total_products
 
     # Total product value (quantity × selling price)
     context["total_product_value"] = Product.objects.filter(is_active=True).aggregate(
@@ -79,10 +103,111 @@ def admin_dashboard(request):
         total=Sum(F('quantity') * F('buying_price'), output_field=DecimalField())
     )['total'] or Decimal('0.00')
 
-    # Total sales revenue
-    context["total_sales"] = Sale.objects.filter(is_reversed=False).aggregate(
+    # ============================================
+    # CARD B: ✅ SALES COUNT
+    # ============================================
+    all_sales = Sale.objects.filter(is_reversed=False)
+    
+    # Daily sales count
+    context["daily_sales_count"] = all_sales.filter(
+        sale_date__gte=start_of_day,
+        sale_date__lt=end_of_day
+    ).count()
+    
+    # Weekly sales count
+    context["weekly_sales_count"] = all_sales.filter(
+        sale_date__gte=start_of_week
+    ).count()
+    
+    # Monthly sales count
+    context["monthly_sales_count"] = all_sales.filter(
+        sale_date__gte=start_of_month
+    ).count()
+    
+    # Total sales count (for main display)
+    context["total_sales_count"] = all_sales.count()
+
+    # ============================================
+    # CARD C: 💰 SALES VALUE
+    # ============================================
+    # Daily sales value
+    context["daily_sales_value"] = all_sales.filter(
+        sale_date__gte=start_of_day,
+        sale_date__lt=end_of_day
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    
+    # Weekly sales value
+    context["weekly_sales_value"] = all_sales.filter(
+        sale_date__gte=start_of_week
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    
+    # Monthly sales value
+    context["monthly_sales_value"] = all_sales.filter(
+        sale_date__gte=start_of_month
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    
+    # Total sales value (for main display)
+    context["total_sales_value"] = all_sales.aggregate(
         total=Sum('total_amount')
     )['total'] or Decimal('0.00')
+
+    # ============================================
+    # CARD D: 💵 PROFITS
+    # ============================================
+    # Calculate profits by subtracting cost from revenue
+    # For each sale, profit = total_amount - (sum of buying_price * quantity for all items)
+    
+    def calculate_profit_for_period(sales_queryset):
+        """Helper function to calculate profit for a given sales queryset"""
+        total_profit = Decimal('0.00')
+        
+        for sale in sales_queryset.prefetch_related('items', 'items__product'):
+            sale_profit = Decimal('0.00')
+            for item in sale.items.all():
+                if item.product:
+                    buying_price = item.product.buying_price or Decimal('0.00')
+                    quantity = item.quantity or 1
+                    unit_profit = (item.unit_price or Decimal('0.00')) - buying_price
+                    sale_profit += unit_profit * quantity
+            total_profit += sale_profit
+        
+        return total_profit
+    
+    # Daily profit
+    daily_sales = all_sales.filter(
+        sale_date__gte=start_of_day,
+        sale_date__lt=end_of_day
+    )
+    context["daily_profit"] = calculate_profit_for_period(daily_sales)
+    
+    # Weekly profit
+    weekly_sales = all_sales.filter(sale_date__gte=start_of_week)
+    context["weekly_profit"] = calculate_profit_for_period(weekly_sales)
+    
+    # Monthly profit
+    monthly_sales = all_sales.filter(sale_date__gte=start_of_month)
+    context["monthly_profit"] = calculate_profit_for_period(monthly_sales)
+    
+    # Total profit (for main display)
+    context["total_profit"] = calculate_profit_for_period(all_sales)
+
+    # ============================================
+    # CARD E: 👤 USERS
+    # ============================================
+    all_users = User.objects.select_related('profile')
+    
+    context["total_users"] = all_users.count()
+    
+    # Count by role
+    context["total_admin"] = all_users.filter(profile__role='admin').count()
+    context["total_managers"] = all_users.filter(profile__role='manager').count()
+    context["total_agents"] = all_users.filter(profile__role='agent').count()
+
+    # ============================================
+    # OTHER SUMMARY DATA
+    # ============================================
+    context["total_categories"] = Category.objects.count()
+    context["total_stock_entries"] = StockEntry.objects.count()
 
     # ============================================
     # RECENT PRODUCTS
@@ -121,14 +246,14 @@ def admin_dashboard(request):
     # ============================================
     # ALL PRODUCTS WITH STATUS & MARGIN
     # ============================================
-    all_products = Product.objects.filter(is_active=True).select_related(
+    all_products_list = Product.objects.filter(is_active=True).select_related(
         "category", "owner"
     ).order_by("-created_at")
 
     products_with_margin_and_status = []
     in_stock_count = low_stock_count = out_of_stock_count = sold_count = 0
 
-    for product in all_products:
+    for product in all_products_list:
         buying_price = product.buying_price or Decimal('0.00')
         selling_price = product.selling_price or Decimal('0.00')
         quantity = product.quantity or 0
@@ -167,50 +292,43 @@ def admin_dashboard(request):
     })
 
     # ============================================
-    # ALL SALES
+    # ALL SALES WITH ADDITIONAL STATISTICS
     # ============================================
-    # Fetch all sales with related data
-    all_sales = Sale.objects.prefetch_related('items', 'items__product', 'seller').order_by("-sale_date")
+    all_sales_list = Sale.objects.prefetch_related(
+        'items', 'items__product', 'seller'
+    ).order_by("-sale_date")
 
-    # Current time
-    now = timezone.now()
-
-    # Calculate start of today
-    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_day = start_of_day + timezone.timedelta(days=1)
-
-    # Calculate start of week (Monday)
-    start_of_week = now - timezone.timedelta(days=now.weekday())
-
-    # Calculate start of month
-    start_of_month = now.replace(day=1)
-
-    # Calculate start of year
-    start_of_year = now.replace(month=1, day=1)
-
-    # Filter sales within each period
-    daily_sales = all_sales.filter(sale_date__gte=start_of_day, sale_date__lt=end_of_day)
-    weekly_sales = all_sales.filter(sale_date__gte=start_of_week)
-    monthly_sales = all_sales.filter(sale_date__gte=start_of_month)
-    annual_sales = all_sales.filter(sale_date__gte=start_of_year)
-
-    # Update context with all statistics
-    context.update({
-        "all_sales": all_sales,
-        "daily_sales_count": daily_sales.filter(is_reversed=False).count(),
-        "weekly_sales_count": weekly_sales.filter(is_reversed=False).count(),
-        "monthly_sales_count": monthly_sales.filter(is_reversed=False).count(),
-        "annual_sales_count": annual_sales.filter(is_reversed=False).count(),
-        "active_sales_count": all_sales.filter(is_reversed=False).count(),
-        "reversed_sales_count": all_sales.filter(is_reversed=True).count(),       
-    })
+    # Annual sales count
+    context["annual_sales_count"] = all_sales_list.filter(
+        sale_date__gte=start_of_year,
+        is_reversed=False
+    ).count()
+    
+    context["active_sales_count"] = all_sales_list.filter(is_reversed=False).count()
+    context["reversed_sales_count"] = all_sales_list.filter(is_reversed=True).count()
+    
+    context["all_sales"] = all_sales_list
 
     # ============================================
     # USERS, CATEGORIES, STOCK ENTRIES
     # ============================================
     context["users"] = User.objects.prefetch_related("profile").order_by("username")
     context["categories"] = Category.objects.order_by("name")
-    context["stockentries"] = StockEntry.objects.select_related("product", "created_by").order_by("-created_at")[:50]
+    context["stockentries"] = StockEntry.objects.select_related(
+        "product", "created_by"
+    ).order_by("-created_at")[:50]
+
+    # ============================================
+    # ROLE CHOICES FOR USER FORM
+    # ============================================
+    try:
+        context["roles"] = Profile.ROLE_CHOICES
+    except:
+        context["roles"] = [
+            ('admin', 'Admin'),
+            ('manager', 'Manager'),
+            ('agent', 'Agent'),
+        ]
 
     # ============================================
     # SAFE URL RESOLUTION
@@ -378,7 +496,6 @@ def debug_product_status(request, product_code):
     }
     
     return render(request, "debug_product.html", debug_info)
-
 
 
 

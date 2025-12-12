@@ -8,7 +8,7 @@
 .dashboard-wrapper {
   display: flex;
   min-height: calc(100vh - 160px);
-  background-color: #f8f9fa;
+  background-color: #8ec4fa;
   position: relative;
 }
 
@@ -280,7 +280,7 @@
 .stat-label {
   display: block;
   font-size: 0.875rem;
-  color: #6c757d;
+  color: #000000;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
@@ -288,14 +288,14 @@
 .stat-value {
   font-size: 1.25rem;
   font-weight: 400;
-  color: #1a1f2e;
+  color: #0040ff;
   margin: 0 0 0.25rem 0;
   line-height: 0.8;
 }
 
 .stat-subtitle {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: #000000;
 }
 
 /* Dashboard Sections */
@@ -321,13 +321,13 @@
 .section-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1a1f2e;
+  color: #000000;
   margin: 0;
 }
 
 .section-subtitle {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: #000000;
 }
 
 .btn-action {
@@ -1401,6 +1401,116 @@ th.dragging {
 }
 
 
+/* Grid lines for table */
+.data-table {
+  border-collapse: collapse;
+  border: 1px solid #dee2e6;
+}
+
+.data-table thead th {
+  border: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.data-table tbody td {
+  border: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Search and entries controls */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.entries-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-control input {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.search-control button {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-control button:hover {
+  background: #2563eb;
+}
+
+.entries-control select {
+  padding: 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dropdown-icon {
+  transition: transform 0.3s ease;
+  font-size: 1.2rem;
+}
+
+.dropdown-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.stat-dropdown {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0;
+}
+
+.stat-dropdown.active {
+  max-height: 300px;
+  margin-top: 1rem;
+}
+
+.stat-dropdown .stat-subtitle {
+  padding: 0.25rem 0;
+}
 
 
 </style>
@@ -1500,7 +1610,10 @@ th.dragging {
     </nav>
   </aside>
 
-  <!-- Main Dashboard Content -->
+
+
+
+<!-- Main Dashboard Content -->
   <main class="dashboard-content">
     
     <!-- Dashboard Overview Section -->
@@ -1515,62 +1628,104 @@ th.dragging {
 
       <!-- Stats Cards -->
       <div class="stats-grid">
+        <!-- Column A: Inventory Card -->
         <div class="stat-card stat-card-success" data-section="product-list">
           <div class="stat-icon">
-            <i class="bi bi-stack"></i>
+            <i class="bi bi-box-seam"></i>
           </div>
           <div class="stat-content">
-            <span class="stat-label">All Products</span>
+            <div class="stat-header" onclick="toggleCardDropdown(this)">
+              <span class="stat-label">📦 Inventory</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
             <h1 class="stat-value">{{ total_products|default:0 }}</h1>
-            <span class="stat-subtitle">Sum of all product quantities</span>
+            <div class="stat-dropdown">
+              <span class="stat-subtitle">Products Count: {{ total_products|default:0 }}</span>
+              <span class="stat-subtitle">Value: KSH {{ total_product_value|floatformat:2 }}</span>
+              <span class="stat-subtitle">Cost: KSH {{ total_product_cost|floatformat:2 }}</span>
+            </div>
           </div>
         </div>
 
-        <div class="stat-card stat-card-info" data-section="total-product-value">
+        <!-- Column B: Sales Count Card -->
+        <div class="stat-card stat-card-info" data-section="sales-list">
           <div class="stat-icon">
-            <i class="bi bi-wallet2"></i>
+            <i class="bi bi-check-circle"></i>
           </div>
           <div class="stat-content">
-            <span class="stat-label">Total Product Value</span>
-            <h1 class="stat-value">KSH {{ total_product_value|floatformat:2 }}</h1>
-            <span class="stat-subtitle">Sum of selling prices</span>
+            <div class="stat-header" onclick="toggleCardDropdown(this)">
+              <span class="stat-label">✅ Sales Count</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
+            <h1 class="stat-value">{{ total_sales_count|default:0 }}</h1>
+            <div class="stat-dropdown">
+              <span class="stat-subtitle">Daily: {{ daily_sales_count|default:0 }}</span>
+              <span class="stat-subtitle">Weekly: {{ weekly_sales_count|default:0 }}</span>
+              <span class="stat-subtitle">Monthly: {{ monthly_sales_count|default:0 }}</span>
+            </div>
           </div>
         </div>
 
-        <div class="stat-card stat-card-warning" data-section="total-product-cost">
-          <div class="stat-icon">
-            <i class="bi bi-coin"></i>
-          </div>
-          <div class="stat-content">
-            <span class="stat-label">Total Product Cost</span>
-            <h1 class="stat-value">KSH {{ total_product_cost|floatformat:2 }}</h1>
-            <span class="stat-subtitle">Sum of buying prices</span>
-          </div>
-        </div>
-
+        <!-- Column C: Sales Value Card -->
         <div class="stat-card stat-card-success" data-section="sales-list">
           <div class="stat-icon">
-            <i class="bi bi-currency-dollar"></i>
+            <i class="bi bi-cash-stack"></i>
           </div>
           <div class="stat-content">
-            <span class="stat-label">Total Sales</span>
-            <h1 class="stat-value">KSH {{ total_sales|default:0 }}</h1>
-            <span class="stat-subtitle">Revenue generated</span>
+            <div class="stat-header" onclick="toggleCardDropdown(this)">
+              <span class="stat-label">💰 Sales Value</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
+            <h1 class="stat-value">KSH {{ total_sales_value|floatformat:2|default:0 }}</h1>
+            <div class="stat-dropdown">
+              <span class="stat-subtitle">Daily: KSH {{ daily_sales_value|floatformat:2|default:0 }}</span>
+              <span class="stat-subtitle">Weekly: KSH {{ weekly_sales_value|floatformat:2|default:0 }}</span>
+              <span class="stat-subtitle">Monthly: KSH {{ monthly_sales_value|floatformat:2|default:0 }}</span>
+            </div>
           </div>
         </div>
 
-        <div class="stat-card stat-card-warning" data-section="users-list">
+        <!-- Column D: Profits Card -->
+        <div class="stat-card stat-card-warning" data-section="profits">
+          <div class="stat-icon">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-header" onclick="toggleCardDropdown(this)">
+              <span class="stat-label">💵 Profits</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
+            <h1 class="stat-value">KSH {{ total_profit|floatformat:2|default:0 }}</h1>
+            <div class="stat-dropdown">
+              <span class="stat-subtitle">Daily: KSH {{ daily_profit|floatformat:2|default:0 }}</span>
+              <span class="stat-subtitle">Weekly: KSH {{ weekly_profit|floatformat:2|default:0 }}</span>
+              <span class="stat-subtitle">Monthly: KSH {{ monthly_profit|floatformat:2|default:0 }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column E: Users Card -->
+        <div class="stat-card stat-card-info" data-section="users-list">
           <div class="stat-icon">
             <i class="bi bi-people"></i>
           </div>
           <div class="stat-content">
-            <span class="stat-label">Total Users</span>
+            <div class="stat-header" onclick="toggleCardDropdown(this)">
+              <span class="stat-label">👤 Users</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
             <h1 class="stat-value">{{ total_users|default:0 }}</h1>
-            <span class="stat-subtitle">Registered accounts</span>
+            <div class="stat-dropdown">
+              <span class="stat-subtitle">Admins: {{ total_admin|default:0 }}</span>
+              <span class="stat-subtitle">Managers: {{ total_managers|default:0 }}</span>
+              <span class="stat-subtitle">Agents: {{ total_agents|default:0 }}</span>
+            </div>
           </div>
         </div>
       </div>
 
+
+      
 
 <!-- ========================================
      RECENT PRODUCTS
@@ -1583,11 +1738,6 @@ th.dragging {
       <h2 class="section-title">Recent Products</h2>
       <span class="section-subtitle">Latest additions to inventory</span>
     </div>
-
-    <a href="#add-product" class="btn-action btn-primary" data-section="add-product">
-      <i class="bi bi-plus-circle"></i>
-      <span>Add Product</span>
-    </a>
   </div>
 
 <!-- Products Table -->
@@ -1596,17 +1746,17 @@ th.dragging {
       <table class="data-table" id="productsTable">
         <thead>
           <tr>
-            <th>Product Code</th>
-            <th>Type</th>
-            <th>Product Name</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Stock</th>
-            <th>Buying Price</th>
-            <th>Selling Price</th>
-            <th>Margin</th>
-            <th>Owner</th>
-            <th>Date Added</th>
+            <th><strong style="color:#ff0000;">PRODUCT CODE</strong></th>
+            <th><strong style="color:#ff0000;">PRODUCT TYPE</strong></th>
+            <th><strong style="color:#ff0000;">PRODUCT NAME</strong></th>
+            <th><strong style="color:#ff0000;">CATEGORY</strong></th>
+            <th><strong style="color:#ff0000;">STATUS</strong></th>
+            <th><strong style="color:#ff0000;">STOCK</strong></th>
+            <th><strong style="color:#ff0000;">BUYING PRICE</strong></th>
+            <th><strong style="color:#ff0000;">SELLING PRICE</strong></th>
+            <th><strong style="color:#ff0000;">% MARGIN</strong></th>
+            <th><strong style="color:#ff0000;">OWNER</strong></th>
+            <th><strong style="color:#ff0000;">DATE ADDED</strong></th>
           </tr>
         </thead>
         <tbody>
@@ -1768,10 +1918,6 @@ th.dragging {
       <h2 class="section-title">Recent Sales</h2>
       <span class="section-subtitle">Latest transactions</span>
     </div>
-    <a href="#record-sale" class="btn-action btn-success" data-section="record-sale">
-      <i class="bi bi-plus-circle"></i>
-      <span>Record Sale</span>
-    </a>
   </div>
 
   <div class="data-card">
@@ -1779,12 +1925,12 @@ th.dragging {
       <table class="data-table">
         <thead>
           <tr>
-            <th>Sale ID</th>
-            <th>Buyer</th>
-            <th>Total Price</th>
-            <th>Sold By</th>
-            <th>Date Sold</th>
-            <th>View Receipt</th>
+            <th><strong style="color:#ff0000;">SALE ID</strong></th>
+            <th><strong style="color:#ff0000;">BUYER</strong></th>
+            <th><strong style="color:#ff0000;">TOTAL PRICE</strong></th>
+            <th><strong style="color:#ff0000;">SOLD BY</strong></th>
+            <th><strong style="color:#ff0000;">DATE SOLD</strong></th>
+            <th><strong style="color:#ff0000;">VIEW RECEIPT</strong></th>
           </tr>
         </thead>
         <tbody>
@@ -1858,9 +2004,10 @@ th.dragging {
 
 
 <!-- ==================== ENHANCED PRODUCTS LIST SECTION ==================== -->
+
 <div id="product-list" class="content-section">
   <div class="content-header">
-    <h1 class="page-title">All Products</h1>
+    <h1 class="page-title">INVENTORY MANAGEMENT</h1>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
       <!-- Filter Buttons -->
       <select id="productStatusFilter" class="form-select" style="width: auto;" onchange="filterProducts()">
@@ -1882,11 +2029,6 @@ th.dragging {
         <option value="single">Single Items (SKU)</option>
         <option value="bulk">Bulk Items</option>
       </select>
-      
-      <a href="#add-product" class="btn-action btn-primary" data-section="add-product">
-        <i class="bi bi-plus-circle"></i>
-        <span>Add Product</span>
-      </a>
     </div>
   </div>
 
@@ -1927,22 +2069,45 @@ th.dragging {
 
   <!-- Products Table -->
   <div class="data-card">
+    <!-- Table Controls: Search and Entries -->
+    <div class="table-controls">
+      <div class="entries-control">
+        <label for="entriesSelect">Show</label>
+        <select id="entriesSelect" onchange="changeEntries()">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="all">All</option>
+        </select>
+        <span>entries</span>
+      </div>
+      
+      <div class="search-control">
+        <input type="text" id="productSearch" placeholder="Search products..." onkeyup="searchProducts()">
+        <button onclick="searchProducts()">
+          <i class="bi bi-search"></i>
+          <span>Search</span>
+        </button>
+      </div>
+    </div>
+
     <div class="table-wrapper">
       <table class="data-table" id="productsTable">
         <thead>
           <tr>
-            <th>Product Code</th>
-            <th>Type</th>
-            <th>Product Name</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Stock</th>
-            <th>Buying Price</th>
-            <th>Selling Price</th>
-            <th>Margin</th>
-            <th>Owner</th>
-            <th>Date Added</th>
-            <th>Actions</th>
+            <th><strong style="color:#ff0000;">PRODUCT CODE</strong></th>
+            <th><strong style="color:#ff0000;">PRODUCT TYPE</strong></th>
+            <th><strong style="color:#ff0000;">PRODUCT NAME</strong></th>
+            <th><strong style="color:#ff0000;">CATEGORY</strong></th>
+            <th><strong style="color:#ff0000;">STATUS</strong></th>
+            <th><strong style="color:#ff0000;">STOCK</strong></th>
+            <th><strong style="color:#ff0000;">BUYING PRICE</strong></th>
+            <th><strong style="color:#ff0000;">SELLING PRICE</strong></th>
+            <th><strong style="color:#ff0000;">% MARGIN</strong></th>
+            <th><strong style="color:#ff0000;">OWNER</strong></th>
+            <th><strong style="color:#ff0000;">DATE ADDED</strong></th>
+            <th><strong style="color:#ff0000;">ACTIONS</strong></th>
           </tr>
         </thead>
         <tbody>
@@ -1981,64 +2146,63 @@ th.dragging {
             <!-- Category -->
             <td><span class="badge bg-secondary">{{ product.category.name }}</span></td>
 
+            <!-- STATUS BADGE -->
+            <td>
+              {% if product.category.is_single_item %}
+                {% if product.status == "sold" %}
+                  <span class="badge badge-danger">
+                    <i class="bi bi-x-circle-fill"></i> Sold Out
+                  </span>
+                {% else %}
+                  <span class="badge badge-success">
+                    <i class="bi bi-check-circle-fill"></i> In Stock
+                  </span>
+                {% endif %}
+              {% else %}
+                {% if product.quantity == 0 %}
+                  <span class="badge badge-danger">
+                    <i class="bi bi-x-circle-fill"></i> Out of Stock
+                  </span>
+                {% elif product.quantity <= 5 %}
+                  <span class="badge badge-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
+                  </span>
+                {% else %}
+                  <span class="badge badge-success">
+                    <i class="bi bi-check-circle-fill"></i> In Stock
+                  </span>
+                {% endif %}
+              {% endif %}
+            </td>
 
-<!-- STATUS BADGE -->
-<td>
-  {% if product.category.is_single_item %}
-    {% if product.status == "sold" %}
-      <span class="badge badge-danger">
-        <i class="bi bi-x-circle-fill"></i> Sold Out
-      </span>
-    {% else %}
-      <span class="badge badge-success">
-        <i class="bi bi-check-circle-fill"></i> In Stock
-      </span>
-    {% endif %}
-  {% else %}
-    {% if product.quantity == 0 %}
-      <span class="badge badge-danger">
-        <i class="bi bi-x-circle-fill"></i> Out of Stock
-      </span>
-    {% elif product.quantity <= 5 %}
-      <span class="badge badge-warning">
-        <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
-      </span>
-    {% else %}
-      <span class="badge badge-success">
-        <i class="bi bi-check-circle-fill"></i> In Stock
-      </span>
-    {% endif %}
-  {% endif %}
-</td>
-
-<!-- STOCK COLUMN -->
-<td class="product-quantity">
-  {% if product.category.is_single_item %}
-    {% if product.status == 'sold' %}
-      <strong style="color: #dc3545; font-weight: bold;">
-        <i class="bi bi-x-circle-fill"></i> SOLD
-      </strong>
-    {% else %}
-      <strong style="color: #28a745; font-weight: bold;">
-        <i class="bi bi-check-circle-fill"></i> Available
-      </strong>
-    {% endif %}
-  {% else %}
-    {% if product.quantity > 5 %}
-      <strong style="color: #28a745; font-weight: bold;">
-        {{ product.quantity }} units
-      </strong>
-    {% elif product.quantity > 0 %}
-      <strong style="color: #ffc107; font-weight: bold;">
-        {{ product.quantity }} units (Low)
-      </strong>
-    {% else %}
-      <strong style="color: #dc3545; font-weight: bold;">
-        0 units (Out)
-      </strong>
-    {% endif %}
-  {% endif %}
-</td>
+            <!-- STOCK COLUMN -->
+            <td class="product-quantity">
+              {% if product.category.is_single_item %}
+                {% if product.status == 'sold' %}
+                  <strong style="color: #dc3545; font-weight: bold;">
+                    <i class="bi bi-x-circle-fill"></i> SOLD
+                  </strong>
+                {% else %}
+                  <strong style="color: #28a745; font-weight: bold;">
+                    <i class="bi bi-check-circle-fill"></i> Available
+                  </strong>
+                {% endif %}
+              {% else %}
+                {% if product.quantity > 5 %}
+                  <strong style="color: #28a745; font-weight: bold;">
+                    {{ product.quantity }} units
+                  </strong>
+                {% elif product.quantity > 0 %}
+                  <strong style="color: #ffc107; font-weight: bold;">
+                    {{ product.quantity }} units (Low)
+                  </strong>
+                {% else %}
+                  <strong style="color: #dc3545; font-weight: bold;">
+                    0 units (Out)
+                  </strong>
+                {% endif %}
+              {% endif %}
+            </td>
 
             <!-- Buying Price -->
             <td class="product-buying-price">
@@ -2292,7 +2456,16 @@ th.dragging {
 
 
 
-<!-- Add Category Section -->
+
+
+
+
+
+<!-- ======================================= -->
+<!-- ADD CATEGORY TEMPLATE -->
+<!-- ======================================= -->
+
+<!-- Add Category Section - Fixed Version -->
 <div id="add-category" class="content-section">
   <div class="content-header">
     <h1 class="page-title">Add New Category</h1>
@@ -2301,104 +2474,177 @@ th.dragging {
   <div class="data-card">
     <div style="padding: 2rem; max-width: 1000px; margin: 0 auto;">
 
-      <!-- Success / Error Messages -->
-      <div id="success-message-category" style="display: none;" class="alert alert-success">
-        Category saved successfully!
-      </div>
+      <!-- Success Message -->
+      <div id="success-message-category" style="display: none;" class="alert alert-success"></div>
+
+      <!-- Error Messages -->
       <div id="message-div-category"></div>
 
-      <form id="addCategoryForm" method="POST" action="{% url 'inventory:category-create' %}">
+      <form id="addCategoryForm" method="POST" action="/inventory/category/create/">
         {% csrf_token %}
 
-        <!-- Basic Information -->
-        <h4>Basic Information</h4>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label for="category-name" class="form-label required">Name:</label>
-            <input type="text" name="name" id="category-name" class="form-control" placeholder="Enter category name" required>
-          </div>
-          <div class="col-md-6">
-            <label for="category-code" class="form-label">Category Code:</label>
-            <input type="text" id="category-code" class="form-control" placeholder="Auto-generated" readonly>
-          </div>
-        </div>
-
-        <!-- Configuration -->
-        <h4>Configuration</h4>
-        <div class="row g-3">
-         <div class="col-md-6">
-            <label for="item-type" class="form-label required">Item Type:</label>
-            <select name="item_type" id="item-type" class="form-select" required>
-              <option value="">Select Item Type</option>
-              {% for value, display in form.fields.item_type.choices %}
-                <option value="{{ value }}">{{ display }}</option>
-              {% endfor %}
-            </select>
-            <small class="form-text text-muted">
-             Single: Unique items (phones). Bulk: Stock items (cables)
-            </small>
-         </div>
-  
-          <div class="col-md-6">
-            <label for="sku-type" class="form-label required">SKU Type:</label>
-            <select name="sku_type" id="sku-type" class="form-select" required>
-              <option value="">Select SKU Type</option>
-              {% for value, display in form.fields.sku_type.choices %}
-              <option value="{{ value }}">{{ display }}</option>
-              {% endfor %}
-            </select>
-            <small class="form-text text-muted">
-            Type of identifier for this category
-            </small>
+        <!-- Basic Information Section -->
+        <div class="mb-4">
+          <h4 style="border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <i class="bi bi-info-circle"></i> Basic Information
+          </h4>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="category-name" class="form-label required">Category Name:</label>
+              <input type="text" 
+                     name="name" 
+                     id="category-name" 
+                     class="form-control" 
+                     placeholder="e.g., Category type" 
+                     required>
+              <small class="form-text text-muted">Enter a descriptive category name</small>
+            </div>
+            <div class="col-md-6">
+              <label for="category-code" class="form-label">Category Code:</label>
+              <input type="text" 
+                     id="category-code" 
+                     name="category_code"
+                     class="form-control" 
+                     placeholder="Auto-generated" 
+                     readonly 
+                     style="background: #f3f4f6;">
+              <small class="form-text text-muted">Automatically generated from name</small>
+            </div>
           </div>
         </div>
 
-        <!-- Products Inline Table -->
-        <h4 style="margin-top: 2rem;">Products</h4>
-        <table class="table table-bordered" id="products-table">
-          <thead>
-            <tr>
-              <th>Product Code</th>
-              <th>Name (e.g., Samsung S24)</th>
-              <th>SKU Value (IMEI, Serial, Barcode)</th>
-              <th>Quantity</th>
-              <th>Status</th>
-              <th>Is Active</th>
-              <th>Delete?</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Template row for JS cloning -->
-            <tr class="product-row">
-              <td><input type="text" name="products-0-code" class="form-control" readonly></td>
-              <td><input type="text" name="products-0-name" class="form-control" placeholder="Product name"></td>
-              <td><input type="text" name="products-0-sku" class="form-control"></td>
-              <td><input type="number" name="products-0-qty" class="form-control" min="1" value="1"></td>
-              <td>
-                <select name="products-0-status" class="form-select">
-                  <option value="available">Available</option>
-                  <option value="sold">Sold</option>
-                  <option value="lowstock">Low Stock</option>
-                  <option value="outofstock">Out of Stock</option>
-                </select>
-              </td>
-              <td><input type="checkbox" name="products-0-active" checked></td>
-              <td><button type="button" class="btn btn-danger btn-sm remove-product">Delete</button></td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Configuration Section -->
+        <div class="mb-4">
+          <h4 style="border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <i class="bi bi-gear"></i> Configuration
+          </h4>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="item-type" class="form-label required">Item Type:</label>
+              <select name="item_type" id="item-type" class="form-select" required>
+                <option value="">-- Select Item Type --</option>
+                <option value="single">Single Item</option>
+                <option value="bulk">Bulk Item</option>
+              </select>
+              <small class="form-text text-muted">
+                <strong>Single:</strong> Unique Items<br>
+                <strong>Bulk:</strong> Multiple units
+              </small>
+            </div>
+    
+            <div class="col-md-6">
+              <label for="sku-type" class="form-label required">SKU Type:</label>
+              <select name="sku_type" id="sku-type" class="form-select" required>
+                <option value="">-- Select SKU Type --</option>
+                <option value="imei">IMEI NUMBER</option>
+                <option value="serial">SERIAL NUMBER</option>
+                <option value="barcode">BARCODE</option>
+              </select>
+              <small class="form-text text-muted">Type of identifier for products in this category</small>
+            </div>
+          </div>
+        </div>
 
-        <button type="button" id="add-product-btn" class="btn btn-secondary">
-          Add another Product
-        </button>
+        <!-- Products Section -->
+        <div class="mb-4">
+          <h4 style="border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <i class="bi bi-box-seam"></i> Products in this Category
+          </h4>
 
-        <!-- Submit -->
-        <div style="margin-top: 2rem;">
+
+          <!-- Django Formset Management Form -->
+          <input type="hidden" name="products-TOTAL_FORMS" id="id_products-TOTAL_FORMS" value="1">
+          <input type="hidden" name="products-INITIAL_FORMS" id="id_products-INITIAL_FORMS" value="0">
+          <input type="hidden" name="products-MIN_NUM_FORMS" id="id_products-MIN_NUM_FORMS" value="0">
+          <input type="hidden" name="products-MAX_NUM_FORMS" id="id_products-MAX_NUM_FORMS" value="1000">
+
+
+
+          <div class="table-responsive">
+            <table class="table table-bordered" id="products-table">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 15%;">Product Code</th>
+                  <th style="width: 25%;">Product Name</th>
+                  <th style="width: 20%;">SKU/IMEI/Serial</th>
+                  <th style="width: 10%;">Quantity</th>
+                  <th style="width: 15%;">Status</th>
+                  <th style="width: 10%;">Active</th>
+                  <th style="width: 5%;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Template Row (will be cloned by JavaScript) -->
+                <tr class="product-row">
+                  <td>
+                    <input type="text" 
+                           name="products-0-code" 
+                           class="form-control form-control-sm" 
+                           readonly 
+                           style="background: #f3f4f6;">
+                  </td>
+                  <td>
+                    <input type="text" 
+                           name="products-0-name" 
+                           class="form-control form-control-sm" 
+                           placeholder="Optional">
+                  </td>
+                  <td>
+                    <input type="text" 
+                           name="products-0-sku" 
+                           class="form-control form-control-sm"
+                           placeholder="Optional">
+                  </td>
+                  <td>
+                    <input type="number" 
+                           name="products-0-qty" 
+                           class="form-control form-control-sm" 
+                           min="0" 
+                           value="">
+                  </td>
+                  <td>
+                    <select name="products-0-status" class="form-select form-select-sm">
+                      <option value="available" selected>Available</option>
+                      <option value="sold">Sold</option>
+                      <option value="lowstock">Low Stock</option>
+                      <option value="outofstock">Out of Stock</option>
+                    </select>
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" 
+                           name="products-0-active" 
+                           class="form-check-input" 
+                           checked>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" 
+                            class="btn btn-danger btn-sm remove-product" 
+                            title="Remove this product">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <button type="button" 
+                  id="add-product-btn" 
+                  class="btn btn-secondary">
+            <i class="bi bi-plus-circle"></i> Add Another Product
+          </button>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
           <button type="submit" class="btn-action btn-primary">
             <i class="bi bi-save"></i>
-            <span>Save Category</span>
+            <span>Save Category & Products</span>
           </button>
-          <a href="#category-list" class="btn-action" style="background: #6c757d; color: #fff; margin-left: 0.5rem;">
+          <a href="#category-list" 
+             class="btn-action" 
+             data-section="category-list"
+             style="background: #6c757d; color: #fff; margin-left: 0.5rem;">
             <i class="bi bi-x-circle"></i>
             <span>Cancel</span>
           </a>
@@ -2407,6 +2653,13 @@ th.dragging {
     </div>
   </div>
 </div>
+
+
+
+
+
+
+
 
 
 
@@ -2818,12 +3071,6 @@ th.dragging {
         <option value="single">Single</option>
         <option value="bulk">Bulk</option>
       </select>
-
-      <!-- Record Sale Button -->
-      <a href="#record-sale" class="btn-action btn-success" data-section="record-sale">
-        <i class="bi bi-plus-circle"></i>
-        <span>Record Sale</span>
-      </a>
     </div>
   </div>
 
@@ -2894,12 +3141,12 @@ th.dragging {
       <table class="data-table" id="salesTable">
         <thead>
           <tr>
-            <th>Sale ID</th>
-            <th>Buyer</th>
-            <th>Total Amount</th>
-            <th>Sold By</th>
-            <th>Date</th>
-            <th>Actions</th>
+            <th><strong style="color:#000000;">SALE ID</strong></th>
+            <th><strong style="color:#000000;">BUYER</strong></th>
+            <th><strong style="color:#000000;">TOTAL AMOUNT</strong></th>
+            <th><strong style="color:#000000;">SOLD BY</strong></th>
+            <th><strong style="color:#000000;">DATE SOLD</strong></th>
+            <th><strong style="color:#ff0000;">ACTIONS</strong></th>
           </tr>
         </thead>
         <tbody>
@@ -3870,6 +4117,341 @@ document.addEventListener('DOMContentLoaded', function () {
     itemTypeSelect.addEventListener('change', toggleFields);
     toggleFields();  // initialize on page load
 });
+
+
+
+
+
+
+
+
+
+
+// ====================================
+// ADD CATEORY AREA
+// ====================================
+// ====================================
+// ADD CATEGORY SECTION - FIXED VERSION
+// ====================================
+
+document.addEventListener("DOMContentLoaded", function() {
+    console.log('🔧 Category form initialization started');
+    
+    // Wait for section to be visible
+    const initCategoryForm = () => {
+        const addBtn = document.getElementById("add-product-btn");
+        const tableBody = document.querySelector("#products-table tbody");
+        const categoryNameInput = document.getElementById("category-name");
+        const categoryCodeInput = document.getElementById("category-code");
+        const categoryForm = document.getElementById("addCategoryForm");
+
+        if (categoryForm.dataset.initialized === "true") {
+           console.log("⚠️ Form already initialized, skipping duplicate binding");
+           return;
+        }
+        categoryForm.dataset.initialized = "true";
+
+
+        if (!addBtn || !tableBody || !categoryNameInput || !categoryCodeInput) {
+            console.log('⏳ Category form elements not ready, retrying...');
+            setTimeout(initCategoryForm, 500);
+            return;
+        }
+
+        console.log('✅ Category form elements found');
+
+        // ==========================================
+        // AUTO-GENERATE CATEGORY CODE
+        // ==========================================
+        categoryNameInput.addEventListener("input", function() {
+            const name = this.value.trim();
+            if (name.length > 0) {
+                const firstLetter = name.charAt(0).toUpperCase();
+                categoryCodeInput.value = `${firstLetter}FSL`;
+            } else {
+                categoryCodeInput.value = "";
+            }
+        });
+
+        // ==========================================
+        // ADD NEW PRODUCT ROW
+        // ==========================================
+        addBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            console.log('➕ Adding new product row');
+            
+            const rows = tableBody.querySelectorAll("tr.product-row");
+            const newIndex = rows.length;
+            
+            // Clone the first row
+            const firstRow = rows[0];
+            const newRow = firstRow.cloneNode(true);
+
+            // Update all input/select names with new index
+            newRow.querySelectorAll("input, select").forEach(el => {
+                const name = el.getAttribute("name");
+                if (name) {
+                    // Replace any existing index with new index
+                    const newName = name.replace(/products-\d+-/, `products-${newIndex}-`);
+                    el.setAttribute("name", newName);
+                    el.setAttribute("id", `id_${newName}`);
+
+                    // Reset values
+                    if (el.type === "checkbox") {
+                        el.checked = true;
+                    } else if (el.tagName.toLowerCase() === "select") {
+                        el.selectedIndex = 0;
+                    } else if (!el.readOnly) {
+                        el.value = "";
+                    }
+                }
+            });
+
+            // Auto-generate product code for new row
+            const codeInput = newRow.querySelector('input[name^="products-"][name$="-code"]');
+            if (codeInput && categoryCodeInput.value) {
+                const categoryCode = categoryCodeInput.value;
+                codeInput.value = `${categoryCode}${String(newIndex + 1).padStart(3, '0')}`;
+            }
+
+            tableBody.appendChild(newRow);
+            console.log(`✅ New row added with index ${newIndex}`);
+        });
+
+        // ==========================================
+        // REMOVE PRODUCT ROW
+        // ==========================================
+        tableBody.addEventListener("click", function(e) {
+            if (e.target && e.target.classList.contains("remove-product")) {
+                e.preventDefault();
+                
+                const rows = tableBody.querySelectorAll("tr.product-row");
+                
+                if (rows.length <= 1) {
+                    alert("⚠️ At least one product row is required.");
+                    return;
+                }
+
+                const row = e.target.closest("tr");
+                row.remove();
+                console.log('🗑️ Product row removed');
+
+                // Reindex remaining rows
+                reindexProductRows();
+            }
+        });
+
+        // ==========================================
+        // REINDEX ROWS AFTER DELETION
+        // ==========================================
+        function reindexProductRows() {
+            const rows = tableBody.querySelectorAll("tr.product-row");
+            
+            rows.forEach((row, index) => {
+                row.querySelectorAll("input, select").forEach(el => {
+                    const name = el.getAttribute("name");
+                    if (name) {
+                        const newName = name.replace(/products-\d+-/, `products-${index}-`);
+                        el.setAttribute("name", newName);
+                        el.setAttribute("id", `id_${newName}`);
+                    }
+                });
+
+                // Update product code
+                const codeInput = row.querySelector('input[name^="products-"][name$="-code"]');
+                if (codeInput && categoryCodeInput.value) {
+                    const categoryCode = categoryCodeInput.value;
+                    codeInput.value = `${categoryCode}${String(index + 1).padStart(3, '0')}`;
+                }
+            });
+            
+            console.log(`✅ Reindexed ${rows.length} product rows`);
+        }
+
+        // ==========================================
+        // AUTO-GENERATE PRODUCT CODES ON CATEGORY CODE CHANGE
+        // ==========================================
+        categoryCodeInput.addEventListener("change", function() {
+            const categoryCode = this.value;
+            if (!categoryCode) return;
+
+            const rows = tableBody.querySelectorAll("tr.product-row");
+            rows.forEach((row, index) => {
+                const codeInput = row.querySelector('input[name^="products-"][name$="-code"]');
+                if (codeInput) {
+                    codeInput.value = `${categoryCode}${String(index + 1).padStart(3, '0')}`;
+                }
+            });
+        });
+
+        // ==========================================
+        // FORM SUBMISSION - AJAX
+        // ==========================================
+        if (categoryForm) {
+            categoryForm.addEventListener("submit", function(e) {
+                e.preventDefault();
+                
+                console.log('📤 Submitting category form');
+                
+                const submitBtn = categoryForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+                
+                const formData = new FormData(categoryForm);
+                
+                // Add management form data for formset
+                const rows = tableBody.querySelectorAll("tr.product-row");
+                formData.set('products-TOTAL_FORMS', rows.length);
+                formData.set('products-INITIAL_FORMS', '0');
+                formData.set('products-MIN_NUM_FORMS', '0');
+                formData.set('products-MAX_NUM_FORMS', '1000');
+
+                fetch(categoryForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('✅ Category saved successfully');
+                        
+                        // Show success message
+                        const successDiv = document.getElementById('success-message-category');
+                        if (successDiv) {
+                            successDiv.textContent = data.message || 'Category saved successfully!';
+                            successDiv.style.display = 'block';
+                            
+                            setTimeout(() => {
+                                successDiv.style.display = 'none';
+                            }, 5000);
+                        }
+                        
+                        // Reset form
+                        categoryForm.reset();
+                        categoryCodeInput.value = '';
+                        
+                        // Reset product rows to one empty row
+                        const allRows = Array.from(tableBody.querySelectorAll("tr.product-row"));
+                        allRows.slice(1).forEach(row => row.remove());
+                        
+                        // Clear first row
+                        const firstRow = tableBody.querySelector("tr.product-row");
+                        firstRow.querySelectorAll("input, select").forEach(el => {
+                            if (el.type === "checkbox") {
+                                el.checked = true;
+                            } else if (!el.readOnly) {
+                                el.value = "";
+                            }
+                        });
+                        
+                        // Show toast notification
+                        showToast('✅ Category created successfully!', 'success');
+                        
+                        // Optional: Navigate to category list
+                        // setTimeout(() => {
+                        //     showSection('category-list');
+                        // }, 2000);
+                        
+                    } else {
+                        console.error('❌ Server error:', data.message);
+                        
+                        const messageDiv = document.getElementById('message-div-category');
+                        if (messageDiv) {
+                            messageDiv.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <strong>Error:</strong> ${data.message || 'Failed to save category'}
+                                </div>
+                            `;
+                        }
+                        
+                        showToast('❌ ' + (data.message || 'Failed to save category'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Network error:', error);
+                    
+                    const messageDiv = document.getElementById('message-div-category');
+                    if (messageDiv) {
+                        messageDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <strong>Network Error:</strong> Could not connect to server. Please try again.
+                            </div>
+                        `;
+                    }
+                    
+                    showToast('❌ Network error occurred', 'error');
+                })
+                .finally(() => {
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
+            });
+        }
+
+        console.log('✅ Category form fully initialized');
+    };
+
+    // Initialize when add-category section becomes active
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.target.id === 'add-category' && 
+                mutation.target.classList.contains('active')) {
+                console.log('📋 Add Category section activated');
+                initCategoryForm();
+            }
+        });
+    });
+
+    const addCategorySection = document.getElementById('add-category');
+    if (addCategorySection) {
+        observer.observe(addCategorySection, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
+
+    // Also try immediate init if section is already active
+    if (addCategorySection && addCategorySection.classList.contains('active')) {
+        initCategoryForm();
+    }
+});
+
+// ==========================================
+// HELPER: SHOW TOAST NOTIFICATION
+// ==========================================
+function showToast(message, type = 'success') {
+    const existingToast = document.querySelector('.toast-message');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-message ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -5580,12 +6162,14 @@ function loadFilterState() {
 /* ============================================================
    FILTERING SYSTEM (same from previous message, extended)
    ============================================================ */
-
 function filterProducts() {
     const statusFilter = document.getElementById("productStatusFilter").value;
     const categoryFilter = document.getElementById("productCategoryFilter").value;
     const typeFilter = document.getElementById("productTypeFilter").value;
     const searchTerm = (document.getElementById("productSearchInput")?.value || "").toLowerCase();
+
+    // ✅ define rows here
+    const rows = document.querySelectorAll(".product-row");
 
     rows.forEach(row => {
         const rowStatus = row.dataset.stockStatus;
@@ -5596,7 +6180,6 @@ function filterProducts() {
 
         let visible = true;
 
-        // Status
         if (statusFilter !== "all") {
             if (statusFilter === "instock" && rowStatus !== "instock") visible = false;
             else if (statusFilter === "lowstock" && rowStatus !== "lowstock") visible = false;
@@ -5605,13 +6188,10 @@ function filterProducts() {
             }
         }
 
-        // Category
         if (categoryFilter !== "all" && rowCategory !== categoryFilter) visible = false;
 
-        // Type
         if (typeFilter !== "all" && rowType !== typeFilter) visible = false;
 
-        // Search
         if (searchTerm && !rowName.includes(searchTerm) && !rowCode.includes(searchTerm)) {
             visible = false;
         }
@@ -5619,10 +6199,48 @@ function filterProducts() {
         row.style.display = visible ? "" : "none";
     });
 
-    saveFilterState();
-    updateProductStats();
-    paginateRows();
+    if (typeof saveFilterState === "function") saveFilterState();
+    if (typeof updateProductStats === "function") updateProductStats();
+    if (typeof paginateRows === "function") paginateRows();
 }
+
+
+
+
+
+
+/* ============================================================
+    SEARCH BUTTON AND ENTRIES
+   ============================================================ */
+
+// Search functionality
+function searchProducts() {
+  const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('.product-row');
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+}
+
+// Entries selection functionality
+function changeEntries() {
+  const entriesValue = document.getElementById('entriesSelect').value;
+  const rows = document.querySelectorAll('.product-row');
+  
+  if (entriesValue === 'all') {
+    rows.forEach(row => row.style.display = '');
+  } else {
+    const limit = parseInt(entriesValue);
+    rows.forEach((row, index) => {
+      row.style.display = index < limit ? '' : 'none';
+    });
+  }
+}
+
+
+
 
 
 
@@ -5895,14 +6513,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+// ================================
+// TOGGLE CARD DROPDOWN
+// ================================
+function toggleCardDropdown(header) {
+  const dropdown = header.parentElement.querySelector('.stat-dropdown');
+  const icon = header.querySelector('.dropdown-icon');
+  
+  // Prevent navigation when clicking card
+  event.stopPropagation();
+  event.preventDefault();
+  
+  dropdown.classList.toggle('active');
+  icon.classList.toggle('rotated');
+}
 
-
-
-
-
-
-
-
+// ================================
+// PREVENT CARD NAVIGATION
+// ================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Remove data-section from stat cards with dropdowns
+  document.querySelectorAll('.stat-card .stat-header').forEach(header => {
+    const card = header.closest('.stat-card');
+    if (card) {
+      // Remove the data-section attribute to prevent navigation
+      card.removeAttribute('data-section');
+      
+      // Remove the click event that triggers navigation
+      card.style.cursor = 'default';
+    }
+  });
+  
+  // Keep only the header clickable for dropdown
+  document.querySelectorAll('.stat-header').forEach(header => {
+    header.style.cursor = 'pointer';
+  });
+});
 
 
 
