@@ -1513,6 +1513,285 @@ th.dragging {
 }
 
 
+
+/* ============================================
+   ENHANCED DASHBOARD SIDEBAR MOBILE STYLES
+   Add this CSS to your dashboard template
+   ============================================ */
+
+/* Responsive Design for Sidebar */
+@media (max-width: 992px) {
+  .dashboard-wrapper {
+    flex-direction: column;
+  }
+
+  /* Sidebar Mobile Positioning */
+  .dashboard-sidebar {
+    position: fixed;
+    left: -280px; /* Hidden off-screen */
+    top: 76px;
+    width: 260px;
+    height: calc(100vh - 76px);
+    z-index: 998;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+  }
+
+  /* Sidebar Active State (Visible) */
+  .dashboard-sidebar.active {
+    left: 0;
+  }
+
+  /* Mobile Sidebar Toggle Button */
+  .mobile-sidebar-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #1a1f2e;
+    font-size: 1.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .mobile-sidebar-toggle:hover {
+    background: #0dcaf0;
+    color: #ffffff;
+    border-color: #0dcaf0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(13, 202, 240, 0.3);
+  }
+
+  .mobile-sidebar-toggle:active {
+    transform: translateY(0);
+  }
+
+  /* Overlay for Sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 76px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 76px);
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 997;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* Dashboard Content Adjustments */
+  .dashboard-content {
+    padding: 1.5rem 1rem;
+    width: 100%;
+  }
+
+  /* Stats Grid Mobile */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Content Header Mobile */
+  .content-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Tablet Adjustments */
+@media (max-width: 768px) {
+  .dashboard-sidebar {
+    width: 240px;
+    left: -260px;
+  }
+
+  .dashboard-content {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Small Mobile Adjustments */
+@media (max-width: 576px) {
+  .dashboard-sidebar {
+    width: 220px;
+    left: -240px;
+  }
+
+  .mobile-sidebar-toggle {
+    font-size: 1.25rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+  }
+
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 0.875rem;
+  }
+
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Extra Small Mobile */
+@media (max-width: 380px) {
+  .dashboard-sidebar {
+    width: 200px;
+    left: -220px;
+  }
+
+  .mobile-sidebar-toggle {
+    font-size: 1.1rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .page-title {
+    font-size: 1rem;
+  }
+
+  .navbar-content {
+    padding: 0.625rem 0.75rem;
+  }
+}
+
+/* Landscape Orientation Mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .dashboard-sidebar {
+    height: 100vh;
+    top: 0;
+  }
+
+  .sidebar-overlay {
+    height: 100vh;
+    top: 0;
+  }
+}
+
+/* Touch Device Improvements */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-sidebar-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .nav-item,
+  .submenu-item {
+    min-height: 44px;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .dashboard-sidebar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent Body Scroll When Sidebar Open */
+body.sidebar-open {
+  overflow: hidden;
+}
+
+/* Smooth Scrolling for Sidebar */
+.dashboard-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 202, 240, 0.3) transparent;
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(13, 202, 240, 0.3);
+  border-radius: 3px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 202, 240, 0.5);
+}
+
+/* Animation Enhancement */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.dashboard-sidebar.active {
+  animation: slideIn 0.3s ease-out;
+}
+
+
 </style>
 
 <div class="dashboard-wrapper">
@@ -1541,7 +1820,9 @@ th.dragging {
         <i class="bi bi-speedometer2"></i>
         <span>Dashboard</span>
       </a>
-
+      <button class="mobile-sidebar-toggle" id="mobileSidebarToggle3">
+        <i class="bi bi-list"></i>
+      </button>
       <button class="nav-item" data-bs-toggle="collapse" data-bs-target="#productsSubmenu" aria-expanded="false">
         <i class="bi bi-box-seam"></i>
         <span>Products</span>
@@ -3737,6 +4018,218 @@ th.dragging {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+
+// ============================================
+// DASHBOARD SIDEBAR MOBILE ENHANCEMENT
+// Add this JavaScript at the end of your dashboard template
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Dashboard Sidebar Mobile Enhancement Loaded');
+
+    // Get all elements
+    const dashboardSidebar = document.getElementById('dashboardSidebar');
+    const mobileSidebarToggles = document.querySelectorAll('.mobile-sidebar-toggle');
+    
+    // Create overlay if it doesn't exist
+    let sidebarOverlay = document.querySelector('.sidebar-overlay');
+    if (!sidebarOverlay && dashboardSidebar) {
+        sidebarOverlay = document.createElement('div');
+        sidebarOverlay.className = 'sidebar-overlay';
+        sidebarOverlay.style.cssText = `
+            display: none;
+            position: fixed;
+            top: 76px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 76px);
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 997;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        dashboardSidebar.parentElement.appendChild(sidebarOverlay);
+    }
+
+    // ============================================
+    // TOGGLE SIDEBAR FUNCTION
+    // ============================================
+    function toggleDashboardSidebar() {
+        if (!dashboardSidebar) return;
+        
+        const isActive = dashboardSidebar.classList.contains('active');
+        
+        if (isActive) {
+            closeDashboardSidebar();
+        } else {
+            openDashboardSidebar();
+        }
+    }
+
+    // ============================================
+    // OPEN SIDEBAR
+    // ============================================
+    function openDashboardSidebar() {
+        if (!dashboardSidebar) return;
+        
+        dashboardSidebar.classList.add('active');
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.style.display = 'block';
+            setTimeout(() => {
+                sidebarOverlay.style.opacity = '1';
+            }, 10);
+        }
+        
+        // Prevent body scroll on mobile
+        if (window.innerWidth <= 992) {
+            document.body.style.overflow = 'hidden';
+        }
+        
+        console.log('✅ Sidebar opened');
+    }
+
+    // ============================================
+    // CLOSE SIDEBAR
+    // ============================================
+    function closeDashboardSidebar() {
+        if (!dashboardSidebar) return;
+        
+        dashboardSidebar.classList.remove('active');
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.style.opacity = '0';
+            setTimeout(() => {
+                sidebarOverlay.style.display = 'none';
+            }, 300);
+        }
+        
+        document.body.style.overflow = '';
+        
+        console.log('❌ Sidebar closed');
+    }
+
+    // ============================================
+    // ATTACH EVENT LISTENERS TO ALL TOGGLE BUTTONS
+    // ============================================
+    mobileSidebarToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleDashboardSidebar();
+        });
+    });
+
+    // ============================================
+    // CLOSE SIDEBAR WHEN CLICKING OVERLAY
+    // ============================================
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeDashboardSidebar);
+    }
+
+    // ============================================
+    // CLOSE SIDEBAR WHEN CLICKING NAVIGATION ITEMS
+    // ============================================
+    if (dashboardSidebar) {
+        const navItems = dashboardSidebar.querySelectorAll('.nav-item, .submenu-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                if (window.innerWidth <= 992) {
+                    setTimeout(closeDashboardSidebar, 300);
+                }
+            });
+        });
+    }
+
+    // ============================================
+    // CLOSE SIDEBAR ON WINDOW RESIZE TO DESKTOP
+    // ============================================
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (window.innerWidth > 992) {
+                closeDashboardSidebar();
+            }
+        }, 250);
+    });
+
+    // ============================================
+    // CLOSE SIDEBAR ON ORIENTATION CHANGE
+    // ============================================
+    window.addEventListener('orientationchange', function() {
+        if (window.innerWidth <= 992 && dashboardSidebar && dashboardSidebar.classList.contains('active')) {
+            closeDashboardSidebar();
+        }
+    });
+
+    // ============================================
+    // PREVENT SIDEBAR CLICK FROM CLOSING (CLICK INSIDE)
+    // ============================================
+    if (dashboardSidebar) {
+        dashboardSidebar.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    // ============================================
+    // CLOSE ON ESCAPE KEY
+    // ============================================
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && dashboardSidebar && dashboardSidebar.classList.contains('active')) {
+            closeDashboardSidebar();
+        }
+    });
+
+    // ============================================
+    // SWIPE GESTURE SUPPORT (MOBILE)
+    // ============================================
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const swipeDistance = touchEndX - touchStartX;
+        const minSwipeDistance = 50;
+
+        // Swipe right to open (from left edge)
+        if (swipeDistance > minSwipeDistance && touchStartX < 30) {
+            if (!dashboardSidebar.classList.contains('active')) {
+                openDashboardSidebar();
+            }
+        }
+
+        // Swipe left to close
+        if (swipeDistance < -minSwipeDistance) {
+            if (dashboardSidebar.classList.contains('active')) {
+                closeDashboardSidebar();
+            }
+        }
+    }
+
+    console.log('✅ Dashboard Sidebar Mobile Enhancement Complete');
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =========================
 // UTILITY FUNCTIONS
 // =========================
