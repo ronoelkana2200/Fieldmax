@@ -215,6 +215,7 @@ def admin_dashboard(request):
     # Count by role
     context["total_admin"] = all_users.filter(profile__role='admin').count()
     context["total_managers"] = all_users.filter(profile__role='manager').count()
+    context["total_cashiers"] = all_users.filter(profile__role='cashier').count()
     context["total_agents"] = all_users.filter(profile__role='agent').count()
 
     # ============================================
