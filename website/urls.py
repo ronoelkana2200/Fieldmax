@@ -9,6 +9,7 @@ from .views import (
     home,
     shopping_cart,
     validate_cart,
+    pending_orders_count,
 )
 from . import views
 from django.contrib.auth.views import LogoutView
@@ -41,6 +42,7 @@ urlpatterns = [
     # ============================================
     # Customer submits order
     path('api/pending-orders/create/', views.create_pending_order, name='create-pending-order'),
+    path('api/pending-orders-count/', pending_orders_count, name='pending_orders_count'),
     
     # Staff views and actions
     path('staff/pending-orders/', views.pending_orders_list, name='pending-orders-list'),
