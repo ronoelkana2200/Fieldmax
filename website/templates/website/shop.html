@@ -1,5 +1,6 @@
 {% extends 'website/base.html' %}
 {% load static %}
+{% load cloudinary %}
 
 {% block title %}Shop - Fieldmax{% endblock %}
 
@@ -181,6 +182,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-clamp: 2;
   }
 
   .product-sku {
@@ -407,19 +409,21 @@
           <div class="products-grid">
             {% for product in category.filtered_products %}
               <div class="product-card" data-status="{{ product.status }}" data-product-id="{{ product.id }}">
+                
                 <!-- Product Image -->
                 <div class="product-image-wrapper">
                   {% if product.image %}
-                    {% load cloudinary %}
-                    <img src="{% if product.image.url %}{{ product.image.url }}{% endif %}" 
+                    <img src="{% cloudinary_url product.image.name width=400 height=300 crop='fill' quality='auto' fetch_format='auto' %}" 
                          alt="{{ product.name }}" 
                          class="product-image"
+                         loading="lazy"
                          onerror="this.parentElement.innerHTML='<div class=\'no-image-placeholder\'><i class=\'bi bi-image\'></i></div>'" />
                   {% else %}
                     <div class="no-image-placeholder">
                       <i class="bi bi-image"></i>
                     </div>
                   {% endif %}
+                  
                   <!-- Status Badge -->
                   <span class="product-status-badge status-{{ product.status }}">
                     {{ product.get_status_display }}
@@ -448,11 +452,16 @@
                       </div>
                     {% endif %}
 
-                    <!-- ✅ FIXED: Add to Cart Button (Only for guests) -->
+                    <!-- Add to Cart Button -->
                     {% if not user.is_authenticated %}
                       {% if product.status == 'available' or product.status == 'lowstock' %}
                         <button class="add-to-cart-btn" 
-                                onclick="addToCart('{{ product.id }}', '{{ product.name }}', '{{ product.selling_price }}', '{{ product.product_code }}', '{% if product.image %}{{ product.image.url }}{% endif %}')">
+                                data-product-id="{{ product.id }}"
+                                data-product-name="{{ product.name }}"
+                                data-product-price="{{ product.selling_price }}"
+                                data-product-code="{{ product.product_code }}"
+                                data-product-image="{% if product.image %}{% cloudinary_url product.image.name width=400 height=300 crop='fill' quality='auto' %}{% endif %}"
+                                onclick="addToCart(this)">
                           <i class="bi bi-cart-plus"></i>
                           <span>
                             Add to Cart
@@ -529,16 +538,23 @@
     });
   });
 
-  // ✅ FIXED: Add to Cart functionality (for guests)
   {% if not user.is_authenticated %}
-  function addToCart(productId, productName, price, productCode, imageUrl) {
+  // Add to Cart functionality - Fixed to avoid Django template interpolation errors
+  function addToCart(button) {
     try {
+      // Get data from button attributes
+      const productId = button.getAttribute('data-product-id');
+      const productName = button.getAttribute('data-product-name');
+      const price = button.getAttribute('data-product-price');
+      const productCode = button.getAttribute('data-product-code');
+      const imageUrl = button.getAttribute('data-product-image');
+
       let cart = JSON.parse(localStorage.getItem('fieldmax_cart') || '[]');
 
       const existingItem = cart.find(item => item.id === productId);
       if (existingItem) {
         existingItem.quantity += 1;
-        alert(`${productName} quantity increased in cart!`);
+        alert(productName + ' quantity increased in cart!');
       } else {
         cart.push({
           id: productId,
@@ -548,13 +564,12 @@
           image: imageUrl,
           quantity: 1
         });
-        alert(`${productName} added to cart!`);
+        alert(productName + ' added to cart!');
       }
 
       localStorage.setItem('fieldmax_cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
       
-      // Log for debugging
       console.log('Cart updated:', cart);
     } catch (error) {
       console.error('Error adding to cart:', error);
