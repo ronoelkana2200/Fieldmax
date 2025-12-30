@@ -62,23 +62,6 @@ class CategoryForm(forms.ModelForm):
         
         return cleaned_data
 
-# Product form
-class ProductForm(forms.ModelForm):
-    class Meta:
-        model = Product
-        fields = ['name', 'sku_value', 'quantity', 'status', 'is_active']
-        
-# Inline formset: Products for a Category
-ProductFormSet = inlineformset_factory(
-    Category,
-    Product,
-    form=ProductForm,
-    extra=1,  # Number of blank product rows
-    can_delete=True,
-    validate_min=False
-)
-
-
 
 
 
@@ -94,6 +77,7 @@ class ProductForm(forms.ModelForm):
             'quantity',
             'buying_price',
             'selling_price',
+            'image',
         ]
         widgets = {
             'category': forms.Select(attrs={
@@ -192,6 +176,15 @@ class ProductForm(forms.ModelForm):
         return instance
     
 
+
+ProductFormSet = inlineformset_factory(
+    Category,
+    Product,
+    form=ProductForm,
+    extra=1,  # Number of blank product rows
+    can_delete=True,
+    validate_min=False
+)
 
 
 

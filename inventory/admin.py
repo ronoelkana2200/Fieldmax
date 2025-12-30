@@ -77,7 +77,7 @@ class StockEntryInline(admin.TabularInline):
 class ProductInline(admin.TabularInline):
     model = Product
     extra = 0
-    fields = ['product_code', 'name', 'sku_value', 'quantity', 'status', 'is_active']
+    fields = ['product_code', 'name', 'sku_value', 'quantity', 'status', 'image', 'is_active']
     readonly_fields = ['product_code', 'status']
     show_change_link = True
 
@@ -280,6 +280,14 @@ class ProductAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('category', 'owner')
+    
+    def has_change_permission(self, request, obj=None):
+        # Explicitly allow changes
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        # Explicitly allow deletions if needed
+        return True
 
     # ============================================
     # ✅ LIVE IMAGE PREVIEW WITH JAVASCRIPT

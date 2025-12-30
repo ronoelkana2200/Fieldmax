@@ -1485,6 +1485,20 @@ def admin_dashboard(request):
     context["total_product_value"] = Product.objects.filter(is_active=True).aggregate(
         total=Sum(F('quantity') * F('selling_price'), output_field=DecimalField())
     )['total'] or Decimal('0.00')
+    
+    # Total product value for in-stock products only (quantity > 0)
+    context["total_product_value"] = Product.objects.filter(
+        is_active=True,
+        quantity__gt=0  # Only products with quantity greater than 0
+    ).aggregate(
+        total=Sum(F('quantity') * F('selling_price'), output_field=DecimalField())
+    )['total'] or Decimal('0.00')
+
+    # instock product value (quantity × selling price)
+    context["instock_products_count"] = Product.objects.filter(
+        is_active=True,
+        quantity__gt=0
+    ).count()
 
     # Total product cost (quantity × buying price)
     context["total_product_cost"] = Product.objects.filter(is_active=True).aggregate(

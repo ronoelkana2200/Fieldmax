@@ -625,10 +625,12 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         
         logger.info("=== ProductCreateView POST ===")
         logger.info(f"POST data: {request.POST}")
+        logger.info(f"FILES data: {request.FILES}")
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         logger.info(f"Is AJAX: {is_ajax}")
         
         try:
+            # ✅ CRITICAL: Pass request.FILES to the form
             form = self.get_form()
             logger.info("Form created successfully")
 
@@ -658,6 +660,13 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                 quantity = form.cleaned_data.get('quantity') or 1
                 buying_price = form.cleaned_data.get('buying_price')
                 selling_price = form.cleaned_data.get('selling_price')
+                
+                # ✅ Get the uploaded image
+                image = form.cleaned_data.get('image')
+                if image:
+                    logger.info(f"Image uploaded: {image.name} ({image.size} bytes)")
+                else:
+                    logger.info("No image uploaded")
 
                 # ===============================
                 # SINGLE ITEM
@@ -670,6 +679,10 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                     
                     form.instance.owner = self.request.user
                     form.instance.quantity = 1
+                    
+                    # ✅ Set the image on the instance
+                    form.instance.image = image
+                    
                     self.object = form.save()
                     
                     # Create stock entry
@@ -683,6 +696,8 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                         notes="Initial single item stock entry"
                     )
                     logger.info(f"[SINGLE ITEM] Product created: {self.object.product_code}")
+                    if self.object.image:
+                        logger.info(f"[SINGLE ITEM] Image saved: {self.object.image.url}")
 
                 # ===============================
                 # BULK ITEM
@@ -697,12 +712,24 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                     if existing_product:
                         self.object = existing_product
                         logger.info(f"[BULK ITEM] Found existing product: {existing_product.product_code}")
+                        
+                        # ✅ If new image uploaded, update the product image
+                        if image and existing_product:
+                            existing_product.image = image
+                            existing_product.save()
+                            logger.info(f"[BULK ITEM] Updated image for existing product")
                     else:
                         # Create new product with quantity=0
                         form.instance.owner = self.request.user
                         form.instance.quantity = 0
+                        
+                        # ✅ Set the image on the instance
+                        form.instance.image = image
+                        
                         self.object = form.save()
                         logger.info(f"[BULK ITEM] Created new product: {self.object.product_code}")
+                        if self.object.image:
+                            logger.info(f"[BULK ITEM] Image saved: {self.object.image.url}")
 
                     # Create stock entry to add quantity
                     StockEntry.objects.create(
@@ -716,6 +743,11 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                     )
                     logger.info(f"[BULK ITEM] Stock entry created for {self.object.product_code}, Qty: {quantity}")
 
+                # Return response with image URL
+                image_url = None
+                if self.object and self.object.image:
+                    image_url = self.object.image.url
+                
                 # Return response
                 if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({
@@ -723,7 +755,8 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
                         "message": f'Product "{self.object.name}" saved successfully!',
                         "product_id": self.object.pk,
                         "product_code": self.object.product_code,
-                        "quantity": self.object.quantity
+                        "quantity": self.object.quantity,
+                        "image_url": image_url  # ✅ Include image URL in response
                     })
                 else:
                     return redirect(self.success_url)
