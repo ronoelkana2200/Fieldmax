@@ -199,18 +199,17 @@ DECIMAL_SEPARATOR = '.'
 # ============================================
 # ✅ STORAGE CONFIGURATION
 # ============================================
-# Modern Django 4.2+ configuration
 STORAGES = {
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
-# ✅ COMPATIBILITY: Keep old settings for django-cloudinary-storage package
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# ✅ COMPATIBILITY
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 
