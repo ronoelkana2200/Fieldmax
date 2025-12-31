@@ -2322,9 +2322,9 @@ th.dragging {
 
 
 
-<!-- ======================================= -->
-<!-- ADD CATEGORY TEMPLATE -->
-<!-- ======================================= -->
+<!-- ======================= -->
+<!--  ADD CATEGORY TEMPLATE   -->
+<!-- ======================= -->
 
 <!-- Add Category Section - Fixed Version -->
 <div id="add-category" class="content-section">
@@ -2524,10 +2524,10 @@ th.dragging {
 
 
 
-<!-- ======================================= -->
-<!-- ADD PRODUCT TEMPLATE -->
-<!-- ======================================= -->
-   <!-- Add Product Section -->
+<!-- ===================== -->
+<!-- ADD PRODUCT TEMPLATE  -->
+<!-- ===================== -->
+
 <div id="add-product" class="content-section">
   <div class="content-header">
     <h1 class="page-title">Add New Product</h1>
@@ -3086,24 +3086,35 @@ th.dragging {
 
 
 
-
-
 <!-- ============================= -->
-<!-- SALES SECTION     -->
+<!--        SALES SECTION          -->
 <!-- ============================= -->
 <div id="sales-list" class="content-section">
 
   <!-- Header with Filters and Action Button -->
   <div class="content-header">
     <h1 class="page-title">SALES MANAGEMENT</h1>
-    <div style="display: flex; gap: 10px;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <!-- Search Input Field -->
+      <div style="position: relative;">
+        <input type="text" 
+               id="searchSaleInput" 
+               class="form-control" 
+               placeholder="Search by Sale ID, ETR No, or Buyer..." 
+               style="padding-right: 40px; min-width: 300px;">
+        <button class="btn btn-primary" 
+                onclick="searchSale()" 
+                style="position: absolute; right: 0; top: 0; height: 100%; border-radius: 0 4px 4px 0; display: flex; align-items: center; padding: 0 15px;">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+
       <!-- Status Filter -->
       <select id="statusFilter" class="form-select" onchange="filterSales()">
         <option value="all">All Status</option>
         <option value="active">Active</option>
         <option value="reversed">Reversed</option>
       </select>
-
 
       <!-- Seller Filter -->
       <select id="sellerFilter" class="form-select" onchange="filterSales()">
@@ -3258,6 +3269,7 @@ th.dragging {
   </div>
 
 </div>
+
 
 
 
@@ -7020,7 +7032,43 @@ function filterProducts() {
 
 
 
+function searchSale() {
+    const searchTerm = document.getElementById('searchSaleInput').value.trim().toLowerCase();
+    
+    if (!searchTerm) {
+        // If search is empty, show all rows
+        document.querySelectorAll('.sale-row').forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+    
+    // Filter rows based on search term
+    document.querySelectorAll('.sale-row').forEach(row => {
+        const saleId = row.getAttribute('data-sale-id') || '';
+        const etrNo = row.cells[1]?.textContent?.trim().toLowerCase() || '';
+        const buyer = row.cells[2]?.textContent?.trim().toLowerCase() || '';
+        
+        const matches = saleId.includes(searchTerm) || 
+                       etrNo.includes(searchTerm) || 
+                       buyer.includes(searchTerm);
+        
+        row.style.display = matches ? '' : 'none';
+    });
+}
 
+// Add event listener for Enter key in search input
+document.getElementById('searchSaleInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchSale();
+    }
+});
+
+function filterSales() {
+    // Existing filterSales function code
+    // ... (keep your existing filterSales function)
+    // Note: You might want to combine search with other filters
+}
 
 
 
