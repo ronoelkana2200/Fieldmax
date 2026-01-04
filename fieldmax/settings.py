@@ -352,7 +352,7 @@ FIELDMAX_ADDRESS = "Nairobi, Kenya"
 FIELDMAX_TEL = "+254722558544"
 FIELDMAX_EMAIL = "fieldmaxlimited@gmail.com"
 FIELDMAX_WEBSITE = "www.fieldmax.co.ke"
-FIELDMAX_PIN = "-"
+FIELDMAX_PIN = "--------"
 FIELDMAX_VAT_RATE = 0.16
 
 FIELDMAX_RECEIPT_PREFIX = "RCT"

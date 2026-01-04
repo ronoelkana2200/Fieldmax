@@ -955,7 +955,7 @@
 
               {% else %}
                 {% if sale.batch_id %}
-                  <a href="{% url 'sales:batch-receipt' sale.batch_id %}"
+                  <a href="{% url 'sales:fieldmax-receipt' sale.batch_id %}"
                      class="btn btn-primary"
                      style="display: inline-block;">
                     View Receipt ({{ sale.batch_total_sales }} items)
@@ -1105,7 +1105,7 @@
 
               {% else %}
                 {% if sale.batch_id %}
-                  <a href="{% url 'sales:batch-receipt' sale.batch_id %}"
+                  <a href="{% url 'sales:fieldmax-receipt' sale.batch_id %}"
                      class="btn btn-primary"
                      style="display: inline-block;">
                     View Receipt ({{ sale.batch_total_sales }} items)
@@ -1196,12 +1196,14 @@
                      autocomplete="off"
                      autofocus>
               <small class="form-text text-muted">
-                Type to search products in real-time
+                <i class="bi bi-info-circle"></i> Searching only YOUR products
+  
               </small>
               
               <!-- Live Search Results Dropdown -->
-              <div id="skuSearchResults" class="list-group mt-2" style="display: none; max-height: 300px; overflow-y: auto; position: relative; z-index: 1000;"></div>
-            </div>
+              <!-- Live Search Results Dropdown -->
+              <div id="skuSearchResults" class="list-group mt-2" style="display: none;"></div>
+           </div>
 
             <!-- Client Name -->
             <div class="mb-3">
@@ -1514,7 +1516,7 @@
 
               {% else %}
                 {% if sale.batch_id %}
-                  <a href="{% url 'sales:batch-receipt' sale.batch_id %}"
+                  <a href="{% url 'sales:fieldmax-receipt' sale.batch_id %}"
                     class="btn btn-primary"
                      style="display: inline-block;">
                     View Receipt ({{ sale.batch_total_sales }} items)
@@ -2149,60 +2151,91 @@ document.addEventListener('DOMContentLoaded', function() {
   // ============================================
   // FORM SUBMISSION
   // ============================================
-  saleForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
+// ============================================
+// FORM SUBMISSION - FIXED WITH REDIRECT
+// ============================================
+saleForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  if (!currentProduct) {
+    showMessage('Please select a valid product first', 'danger');
+    return;
+  }
+  
+  // Validate all required fields
+  const clientName = editClientName.value.trim();
+  const idNumber = editIdNumber.value.trim();
+  const phoneNumber = editPhoneNumber.value.trim();
+  const nokName = editNokName.value.trim();
+  const nokPhone = editNokPhone.value.trim();
+  const sellingPrice = editSellingPrice.value.trim();
+  
+  if (!clientName || !idNumber || !phoneNumber || !nokName || !nokPhone) {
+    showMessage('❌ Please fill in all required fields', 'danger');
+    return;
+  }
+  
+  if (!sellingPrice || parseFloat(sellingPrice) <= 0) {
+    showMessage('❌ Please enter a valid selling price', 'danger');
+    return;
+  }
+  
+  const saleData = {
+    product_code: currentProduct.sku_code || currentProduct.product_code,
+    quantity: 1,  // Always 1 for single items from this form
+    unit_price: sellingPrice,
+    buyer_name: clientName,
+    buyer_phone: phoneNumber,
+    buyer_id_number: idNumber,
+    nok_name: nokName,
+    nok_phone: nokPhone
+  };
+  
+  try {
+    showMessage('Processing sale...', 'info');
     
-    if (!currentProduct) {
-      showMessage('Please select a valid product first', 'danger');
-      return;
+    // Disable submit button
+    const submitBtn = document.getElementById('submitSaleBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+    
+    // Submit to Django backend
+    const response = await fetch('/sales/create/', {  // ✅ Correct endpoint
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(saleData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      showMessage('✅ Sale recorded successfully!', 'success');
+      
+      // ✅ REDIRECT TO RECEIPT PAGE
+      setTimeout(() => {
+        window.location.href = `/sales/receipt/${result.sale_id}/`;
+      }, 1000);  // 1 second delay to show success message
+      
+    } else {
+      // Re-enable button on error
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+      showMessage('❌ Error: ' + (result.message || 'Failed to record sale'), 'danger');
     }
     
-    const saleData = {
-      product_id: currentProduct.id,
-      sku_value: skuInput.value.trim(),
-      product_name: displayProductName.textContent,
-      selling_price: editSellingPrice.value,
-      client_name: editClientName.value,
-      id_number: editIdNumber.value,
-      phone_number: editPhoneNumber.value,
-      nok_name: editNokName.value,
-      nok_phone: editNokPhone.value
-    };
-    
-    try {
-      showMessage('Processing sale...', 'info');
-      
-      // Submit to Django backend
-      const response = await fetch('/sales/record-sale/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify(saleData)
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        showMessage('✅ Sale recorded successfully!', 'success');
-        
-        // Reset form after 2 seconds
-        setTimeout(() => {
-          saleForm.reset();
-          showEmptyState();
-          currentProduct = null;
-          skuInput.focus();
-        }, 2000);
-      } else {
-        showMessage('❌ Error: ' + (result.message || 'Failed to record sale'), 'danger');
-      }
-      
-    } catch (error) {
-      console.error('Submission error:', error);
-      showMessage('❌ Error submitting sale', 'danger');
-    }
-  });
+  } catch (error) {
+    console.error('Submission error:', error);
+    // Re-enable button on error
+    const submitBtn = document.getElementById('submitSaleBtn');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Submit Sale';
+    showMessage('❌ Error submitting sale', 'danger');
+  }
+});
 
   // ============================================
   // UTILITY FUNCTIONS

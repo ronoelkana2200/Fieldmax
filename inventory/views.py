@@ -1582,7 +1582,14 @@ def product_transfer_process(request):
                         'message': 'Product has already been sold'
                     }, status=400)
                 
-                # Simply change owner - NO stock entries needed
+                # For single items, quantity must be 1
+                if quantity != 1:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Single items can only be transferred one at a time'
+                    }, status=400)
+                
+                # Simply change owner
                 product.owner = recipient
                 product.save()
                 
@@ -1598,6 +1605,7 @@ def product_transfer_process(request):
                     'product': {
                         'id': product.id,
                         'name': product.name,
+                        'product_code': product.product_code,
                         'new_owner': recipient.username,
                         'previous_owner': old_owner,
                         'quantity': 1
@@ -1605,7 +1613,7 @@ def product_transfer_process(request):
                 })
             
             # ========================================
-            # BULK ITEM TRANSFER
+            # BULK ITEM TRANSFER (Only full transfers allowed)
             # ========================================
             else:
                 current_qty = product.quantity or 0
@@ -1617,125 +1625,49 @@ def product_transfer_process(request):
                         'message': 'Product is out of stock'
                     }, status=400)
                 
-                if quantity > current_qty:
+                # Check if it's a FULL transfer
+                if quantity != current_qty:
                     return JsonResponse({
                         'success': False,
-                        'message': f'Only {current_qty} unit(s) available'
+                        'message': f'‼️‼️‼️ NOT ALLOWED. '
+                                   f'Kinly contact store manager for asistance.'
                     }, status=400)
                 
-                # ===== FULL TRANSFER (all quantity) =====
-                if quantity == current_qty:
-                    # Simply change owner - NO need to create new product
-                    product.owner = recipient
-                    product.save()
-                    
-                    logger.info(
-                        f"[TRANSFER] Full bulk transfer {product.product_code} | "
-                        f"{quantity} units | {old_owner} → {recipient.username} | "
-                        f"By: {request.user.username}"
-                    )
-                    
-                    return JsonResponse({
-                        'success': True,
-                        'message': f'All {quantity} unit(s) of "{product.name}" transferred to {recipient.username}',
-                        'product': {
-                            'id': product.id,
-                            'name': product.name,
-                            'quantity_transferred': quantity,
-                            'remaining_quantity': 0,  # Sender has 0 left
-                            'previous_owner': old_owner,
-                            'new_owner': recipient.username
-                        }
-                    })
+                # Process FULL transfer
+                product.owner = recipient
+                product.save()
                 
-                # ===== PARTIAL TRANSFER (split inventory) =====
-                else:
-                    # Check if recipient already has this product
-                    recipient_product = Product.objects.filter(
-                        name=product.name,
-                        category=product.category,
-                        owner=recipient,
-                        is_active=True
-                    ).first()
-                    
-                    if recipient_product:
-                        # Add to recipient's existing product
-                        recipient_product.quantity += quantity
-                        recipient_product.save()
-                        transferred_product_id = recipient_product.id
-                        
-                        logger.info(
-                            f"[TRANSFER] Added {quantity} units to existing product "
-                            f"{recipient_product.product_code}"
-                        )
-                    else:
-                        # Create new product for recipient
-                        recipient_product = Product.objects.create(
-                            name=product.name,
-                            category=product.category,
-                            sku_value=product.sku_value,
-                            quantity=quantity,
-                            buying_price=product.buying_price,
-                            selling_price=product.selling_price,
-                            owner=recipient,
-                            is_active=True
-                        )
-                        transferred_product_id = recipient_product.id
-                        
-                        logger.info(
-                            f"[TRANSFER] Created new product {recipient_product.product_code} "
-                            f"for {recipient.username} with {quantity} units"
-                        )
-                    
-                    # Reduce sender's quantity
-                    product.quantity -= quantity
-                    product.save()
-                    
-                    # ✅ Create stock entries for audit trail
-                    # These represent actual inventory movements, not ownership changes
-                    buying_price = product.buying_price or Decimal('0.00')
-                    transfer_note = f"Transfer: {old_owner} → {recipient.username}"
-                    
-                    # Sender's stock reduction
-                    StockEntry.objects.create(
-                        product=product,
-                        quantity=-quantity,  # Negative = stock OUT
-                        entry_type='adjustment',
-                        unit_price=buying_price,
-                        total_amount=quantity * buying_price,
-                        created_by=request.user,
-                        notes=f"{transfer_note} (sent)"
-                    )
-                    
-                    # Recipient's stock increase
-                    StockEntry.objects.create(
-                        product=recipient_product,
-                        quantity=quantity,  # Positive = stock IN
-                        entry_type='adjustment',
-                        unit_price=buying_price,
-                        total_amount=quantity * buying_price,
-                        created_by=request.user,
-                        notes=f"{transfer_note} (received)"
-                    )
-                    
-                    logger.info(
-                        f"[TRANSFER] Partial bulk transfer {product.product_code} | "
-                        f"{quantity}/{current_qty} units | {old_owner} → {recipient.username} | "
-                        f"By: {request.user.username}"
-                    )
-                    
-                    return JsonResponse({
-                        'success': True,
-                        'message': f'{quantity} unit(s) of "{product.name}" transferred to {recipient.username}',
-                        'product': {
-                            'original_product_id': product.id,
-                            'transferred_product_id': transferred_product_id,
-                            'quantity_transferred': quantity,
-                            'remaining_quantity': product.quantity,
-                            'previous_owner': old_owner,
-                            'new_owner': recipient.username
-                        }
-                    })
+                # Create stock audit entry for full transfer
+                buying_price = product.buying_price or Decimal('0.00')
+                StockEntry.objects.create(
+                    product=product,
+                    quantity=-current_qty,  # Stock OUT from old owner
+                    entry_type='transfer_out',
+                    unit_price=buying_price,
+                    total_amount=current_qty * buying_price,
+                    created_by=request.user,
+                    notes=f"Full transfer: {old_owner} → {recipient.username}"
+                )
+                
+                logger.info(
+                    f"[TRANSFER] Full bulk transfer {product.product_code} | "
+                    f"{quantity} units | {old_owner} → {recipient.username} | "
+                    f"By: {request.user.username}"
+                )
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f'All {quantity} unit(s) of "{product.name}" transferred to {recipient.username}',
+                    'product': {
+                        'id': product.id,
+                        'name': product.name,
+                        'product_code': product.product_code,
+                        'quantity_transferred': quantity,
+                        'remaining_quantity': 0,
+                        'previous_owner': old_owner,
+                        'new_owner': recipient.username
+                    }
+                })
     
     except Product.DoesNotExist:
         return JsonResponse({
@@ -1749,8 +1681,6 @@ def product_transfer_process(request):
             'success': False,
             'message': f'Transfer failed: {str(e)}'
         }, status=500)
-
-
 
 
 
